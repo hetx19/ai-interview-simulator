@@ -1,0 +1,300 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  email                 String                 @unique
+  name                  String?
+  username              String                 @unique
+  avatarUrl             String?                @map("avatar_url")
+  role                  String                 @default("user")
+  targetRole            String?                @map("target_role")
+  targetCompanies       String[]               @map("target_companies")
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt             DateTime?              @map("deleted_at") @db.Timestamptz
+
+  accounts              Account[]
+  sessions              Session[]
+  githubProfile         GithubProfile?
+  leetcodeProfile       LeetcodeProfile?
+  resumes               Resume[]
+  interviewSessions     InterviewSession[]
+  hiringReadinessScore  HiringReadinessScore?
+  settings              UserSettings?
+  auditLogs             AuditLog[]
+
+  @@index([email])
+  @@index([username])
+  @@map("users")
+}
+
+model Account {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @map("user_id") @db.Uuid
+  provider            String
+  providerAccountId   String   @map("provider_account_id")
+  accessToken         String?  @map("access_token")
+  refreshToken        String?  @map("refresh_token")
+  tokenType           String?  @map("token_type")
+  scope               String?
+  expiresAt           BigInt?  @map("expires_at")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  expires      DateTime @db.Timestamptz
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionToken])
+  @@index([userId])
+  @@map("sessions")
+}
+
+model GithubProfile {
+  id                   String    @id @default(uuid()) @db.Uuid
+  userId               String    @unique @map("user_id") @db.Uuid
+  githubUsername       String    @map("github_username")
+  githubScore          Int?      @map("github_score") @db.SmallInt
+  repoHealthScore      Int?      @map("repo_health_score") @db.SmallInt
+  openSourceScore      Int?      @map("open_source_score") @db.SmallInt
+  totalRepos           Int       @default(0) @map("total_repos")
+  totalStars           Int       @default(0) @map("total_stars")
+  totalForks           Int       @default(0) @map("total_forks")
+  totalCommitsYear     Int       @default(0) @map("total_commits_year")
+  languageDistribution Json?     @map("language_distribution")
+  contributionCalendar Json?     @map("contribution_calendar")
+  topRepos             Json?     @map("top_repos")
+  recommendations      String[]
+  lastSyncedAt         DateTime? @map("last_synced_at") @db.Timestamptz
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("github_profiles")
+}
+
+model LeetcodeProfile {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @unique @map("user_id") @db.Uuid
+  leetcodeUsername  String    @map("leetcode_username")
+  leetcodeScore     Int?      @map("leetcode_score") @db.SmallInt
+  totalSolved       Int       @default(0) @map("total_solved")
+  easySolved        Int       @default(0) @map("easy_solved")
+  mediumSolved      Int       @default(0) @map("medium_solved")
+  hardSolved        Int       @default(0) @map("hard_solved")
+  contestRating     Int?      @map("contest_rating")
+  contestRanking    Int?      @map("contest_ranking")
+  streakDays        Int       @default(0) @map("streak_days")
+  topicPerformance  Json?     @map("topic_performance")
+  weakTopics        String[]  @map("weak_topics")
+  recommendations   Json?
+  contestHistory    Json?     @map("contest_history")
+  lastSyncedAt      DateTime? @map("last_synced_at") @db.Timestamptz
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("leetcode_profiles")
+}
+
+model Resume {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  fileUrl         String    @map("file_url")
+  fileName        String    @map("file_name")
+  fileSizeBytes   Int       @map("file_size_bytes")
+  isActive        Boolean   @default(true) @map("is_active")
+  resumeScore     Int?      @map("resume_score") @db.SmallInt
+  atsScore        Int?      @map("ats_score") @db.SmallInt
+  formattingScore Int?      @map("formatting_score") @db.SmallInt
+  keywordScore    Int?      @map("keyword_score") @db.SmallInt
+  impactScore     Int?      @map("impact_score") @db.SmallInt
+  missingKeywords String[]  @map("missing_keywords")
+  weakBullets     Json?     @map("weak_bullets")
+  sectionFeedback Json?     @map("section_feedback")
+  analysisStatus  String    @default("pending") @map("analysis_status")
+  analyzedAt      DateTime? @map("analyzed_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("resumes")
+}
+
+model InterviewSession {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  status          String    @default("in_progress")
+  difficulty      String
+  topic           String?
+  voiceEnabled    Boolean   @default(true) @map("voice_enabled")
+  language        String    @default("javascript")
+  durationSeconds Int?      @map("duration_seconds")
+  startedAt       DateTime  @default(now()) @map("started_at") @db.Timestamptz
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem         InterviewProblem?
+  submissions     InterviewSubmission[]
+  scores          InterviewScores?
+  voiceTranscripts VoiceTranscript[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("interview_sessions")
+}
+
+model InterviewProblem {
+  id                     String           @id @default(uuid()) @db.Uuid
+  sessionId              String           @unique @map("session_id") @db.Uuid
+  title                  String
+  description            String
+  examples               Json
+  constraints            String[]
+  testCasesVisible       Json             @map("test_cases_visible")
+  testCasesHidden        Json             @map("test_cases_hidden")
+  optimalTimeComplexity  String?          @map("optimal_time_complexity")
+  optimalSpaceComplexity String?          @map("optimal_space_complexity")
+  hints                  Json?
+  tags                   String[]
+  createdAt              DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  session                InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("interview_problems")
+}
+
+model InterviewSubmission {
+  id              String           @id @default(uuid()) @db.Uuid
+  sessionId       String           @map("session_id") @db.Uuid
+  code            String
+  language        String
+  isFinal         Boolean          @default(false) @map("is_final")
+  judge0Token     String?          @map("judge0_token")
+  executionResult Json?            @map("execution_result")
+  submittedAt     DateTime         @default(now()) @map("submitted_at") @db.Timestamptz
+
+  session         InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("interview_submissions")
+}
+
+model InterviewScores {
+  id                    String           @id @default(uuid()) @db.Uuid
+  sessionId             String           @unique @map("session_id") @db.Uuid
+  communicationScore    Int?             @map("communication_score") @db.SmallInt
+  dsaScore              Int?             @map("dsa_score") @db.SmallInt
+  codeQualityScore      Int?             @map("code_quality_score") @db.SmallInt
+  optimizationScore     Int?             @map("optimization_score") @db.SmallInt
+  overallScore          Int?             @map("overall_score") @db.SmallInt
+  feedback              Json?
+  improvements          String[]
+  codeAnalysis          Json?            @map("code_analysis")
+  communicationAnalysis Json?            @map("communication_analysis")
+  edgeCaseReport        Json?            @map("edge_case_report")
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  session               InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("interview_scores")
+}
+
+model VoiceTranscript {
+  id           String           @id @default(uuid()) @db.Uuid
+  sessionId    String           @map("session_id") @db.Uuid
+  segmentIndex Int              @map("segment_index")
+  speaker      String
+  text         String
+  timestampMs  Int?             @map("timestamp_ms")
+  confidence   Decimal?         @db.Decimal(3, 2)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  session      InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("voice_transcripts")
+}
+
+model HiringReadinessScore {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @map("user_id") @db.Uuid
+  overallScore       Int?     @map("overall_score") @db.SmallInt
+  level              String?
+  githubComponent    Int?     @map("github_component") @db.SmallInt
+  leetcodeComponent  Int?     @map("leetcode_component") @db.SmallInt
+  resumeComponent    Int?     @map("resume_component") @db.SmallInt
+  interviewComponent Int?     @map("interview_component") @db.SmallInt
+  roadmap            Json?
+  improvementQueue   Json?    @map("improvement_queue")
+  computedAt         DateTime @default(now()) @map("computed_at") @db.Timestamptz
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("hiring_readiness_scores")
+}
+
+model UserSettings {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @map("user_id") @db.Uuid
+  profilePublic      Boolean  @default(true) @map("profile_public")
+  showGithubScore    Boolean  @default(true) @map("show_github_score")
+  showLeetcodeScore  Boolean  @default(true) @map("show_leetcode_score")
+  showInterviewScore Boolean  @default(true) @map("show_interview_score")
+  showResumeScore    Boolean  @default(false) @map("show_resume_score")
+  emailWeeklyDigest  Boolean  @default(true) @map("email_weekly_digest")
+  emailScoreUpdates  Boolean  @default(true) @map("email_score_updates")
+  preferredLanguage  String   @default("javascript") @map("preferred_language")
+  preferredVoiceLang String   @default("en-US") @map("preferred_voice_lang")
+  theme              String   @default("system")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id") @db.Uuid
+  metadata   Json?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
