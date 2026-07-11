@@ -5,8 +5,11 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: false,
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "prisma/tests/**/*.test.ts"],
     setupFiles: ["tests/setup.ts"],
+    env: {
+      TEST_DATABASE_URL: process.env["TEST_DATABASE_URL"] ?? "",
+    },
   },
   resolve: {
     alias: {
