@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -13,9 +15,11 @@ if (!TEST_DATABASE_URL) {
   );
 }
 
-const db = new PrismaClient({
-  datasourceUrl: TEST_DATABASE_URL,
+const pool = new Pool({
+  connectionString: TEST_DATABASE_URL,
 });
+const adapter = new PrismaPg(pool);
+const db = new PrismaClient({ adapter });
 
 /** Creates a minimal test user and returns its id. */
 async function createTestUser(suffix = ""): Promise<string> {
@@ -35,6 +39,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await db.$disconnect();
+  await pool.end();
 });
 
 // ---------------------------------------------------------------------------
