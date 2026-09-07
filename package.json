@@ -2,6 +2,7 @@
   "name": "dev_metric",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.8.2",
   "workspaces": [
     "apps/*",
     "packages/*"

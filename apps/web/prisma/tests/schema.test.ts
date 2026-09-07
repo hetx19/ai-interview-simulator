@@ -28,6 +28,7 @@ async function createTestUser(suffix = ""): Promise<string> {
       email: `test${suffix}@example.com`,
       username: `testuser${suffix}`,
       name: "Test User",
+      targetCompanies: [],
     },
   });
   return user.id;

@@ -9,10 +9,17 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
+    // NextAuth
+    NEXTAUTH_SECRET: z.string().min(32),
+    // GitHub OAuth
     GITHUB_CLIENT_ID: z.string().min(1),
     GITHUB_CLIENT_SECRET: z.string().min(1),
     GITHUB_TOKEN_ENCRYPTION_KEY: z.string().length(64),
+    // Google OAuth
+    GOOGLE_CLIENT_ID: z.string().min(1),
+    GOOGLE_CLIENT_SECRET: z.string().min(1),
     JWT_SECRET: z.string().length(128),
+    // Upstash Redis / Vercel KV
     KV_REST_API_URL: z.string().url(),
     KV_REST_API_TOKEN: z.string().min(1),
     GROQ_API_KEY: z.string().min(1),
@@ -26,9 +33,12 @@ export const env = createEnv({
   },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
     GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
     GITHUB_TOKEN_ENCRYPTION_KEY: process.env.GITHUB_TOKEN_ENCRYPTION_KEY,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     JWT_SECRET: process.env.JWT_SECRET,
     KV_REST_API_URL: process.env.KV_REST_API_URL,
     KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN,

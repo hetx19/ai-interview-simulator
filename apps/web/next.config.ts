@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  serverExternalPackages: ["pg", "drizzle-orm"],
+  serverExternalPackages: ["pg", "@prisma/client", "prisma"],
 };
 
 export default nextConfig;
