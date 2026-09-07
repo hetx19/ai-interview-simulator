@@ -36,11 +36,11 @@ describe("OAuth Token Encryption (AES-256-GCM)", () => {
     expect(parts).toHaveLength(3);
     const [ivHex, cipherHex, tagHex] = parts;
 
-    // IV must be 12 bytes = 24 hex chars
+    // 12-byte iv (24 hex chars)
     expect(ivHex).toHaveLength(24);
-    // Auth tag must be 16 bytes = 32 hex chars
+    // 16-byte auth tag (32 hex chars)
     expect(tagHex).toHaveLength(32);
-    // Ciphertext must be non-empty hex
+    // non-empty ciphertext hex
     expect(cipherHex!.length).toBeGreaterThan(0);
     expect(/^[0-9a-f]+$/i.test(ivHex!)).toBe(true);
     expect(/^[0-9a-f]+$/i.test(cipherHex!)).toBe(true);
@@ -57,7 +57,7 @@ describe("OAuth Token Encryption (AES-256-GCM)", () => {
     const [iv2] = enc2.split(".");
     expect(iv1).not.toBe(iv2);
 
-    // Both must decrypt to the exact same plaintext
+    // should decrypt to same plaintext
     expect(decryptToken(enc1)).toBe(plaintext);
     expect(decryptToken(enc2)).toBe(plaintext);
   });
@@ -67,7 +67,7 @@ describe("OAuth Token Encryption (AES-256-GCM)", () => {
     const encrypted = encryptToken(plaintext);
     const parts = encrypted.split(".");
 
-    // Flip bits in ciphertext
+    // flip bit in ciphertext
     const tamperedCipher = parts[1]!.slice(0, -2) + (parts[1]!.endsWith("a") ? "b" : "a");
     const tampered = [parts[0], tamperedCipher, parts[2]].join(".");
 
@@ -79,7 +79,7 @@ describe("OAuth Token Encryption (AES-256-GCM)", () => {
     const encrypted = encryptToken(plaintext);
     const parts = encrypted.split(".");
 
-    // Substitute invalid auth tag
+    // fake auth tag
     const badTag = "0".repeat(32);
     const tampered = [parts[0], parts[1], badTag].join(".");
 

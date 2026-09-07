@@ -9,15 +9,7 @@ const SESSION_COOKIE_NAMES = [
   "authjs.session-token",
 ];
 
-/**
- * DELETE /api/v1/auth/account
- *
- * Account deletion endpoint (Stage 2):
- * 1. Verifies the caller is authenticated.
- * 2. Invalidates all active authentication sessions for the user.
- * 3. Records deletion intent on the user record (deletedAt timestamp).
- * 4. Expires the session cookies in the response so the browser cannot continue authenticating.
- */
+// deletes account, invalidates sessions, and clears auth cookies
 export async function DELETE(): Promise<NextResponse> {
   const session = await auth();
 
@@ -38,7 +30,7 @@ export async function DELETE(): Promise<NextResponse> {
       { status: 200 },
     );
 
-    // Clear session cookies in the browser
+    // clear auth cookies
     for (const cookieName of SESSION_COOKIE_NAMES) {
       response.cookies.set(cookieName, "", {
         httpOnly: true,

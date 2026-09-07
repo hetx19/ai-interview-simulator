@@ -24,9 +24,7 @@ afterAll(async () => {
   await pool.end();
 });
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// helpers
 let _seq = 0;
 
 async function createUser(tag = ""): Promise<string> {
@@ -46,13 +44,11 @@ async function deleteUser(id: string) {
   try {
     await db.user.delete({ where: { id } });
   } catch {
-    /* cascaded already */
+    // already cascaded
   }
 }
 
-// ---------------------------------------------------------------------------
-// 1. CHECK constraints — score columns 0-100
-// ---------------------------------------------------------------------------
+// check constraints on score columns
 describe("CHECK constraints — score columns must be 0-100", () => {
   let uid: string;
   beforeAll(async () => {
@@ -62,7 +58,7 @@ describe("CHECK constraints — score columns must be 0-100", () => {
     await deleteUser(uid);
   });
 
-  // hiring_readiness_scores.overall_score
+  // hiring readiness overall score
   it("rejects hiring_readiness_scores.overall_score = 150", async () => {
     await expect(
       db.$executeRaw`INSERT INTO hiring_readiness_scores (user_id, overall_score) VALUES (${uid}::uuid, 150)`,
@@ -86,7 +82,7 @@ describe("CHECK constraints — score columns must be 0-100", () => {
     await db.hiringReadinessScore.deleteMany({ where: { userId: uid } });
   });
 
-  // github_profiles
+  // github profile
   it("rejects github_profiles.github_score = 200", async () => {
     await expect(
       db.$executeRaw`INSERT INTO github_profiles (user_id, github_username, github_score) VALUES (${uid}::uuid, 'gh', 200) ON CONFLICT (user_id) DO UPDATE SET github_score = EXCLUDED.github_score`,
@@ -103,7 +99,7 @@ describe("CHECK constraints — score columns must be 0-100", () => {
     ).rejects.toThrow();
   });
 
-  // leetcode_profiles
+  // leetcode profile
   it("rejects leetcode_profiles.leetcode_score = 101", async () => {
     await expect(
       db.$executeRaw`INSERT INTO leetcode_profiles (user_id, leetcode_username, leetcode_score) VALUES (${uid}::uuid, 'lc', 101) ON CONFLICT (user_id) DO UPDATE SET leetcode_score = EXCLUDED.leetcode_score`,
@@ -115,7 +111,7 @@ describe("CHECK constraints — score columns must be 0-100", () => {
     ).rejects.toThrow();
   });
 
-  // resumes
+  // resume
   it("rejects resumes.resume_score = -5", async () => {
     await expect(
       db.$executeRaw`INSERT INTO resumes (user_id, file_url, file_name, file_size_bytes, resume_score) VALUES (${uid}::uuid, 'https://x.com/r.pdf', 'r.pdf', 100, -5)`,
@@ -142,7 +138,7 @@ describe("CHECK constraints — score columns must be 0-100", () => {
     ).rejects.toThrow();
   });
 
-  // interview_scores (need a session each time)
+  // interview scores
   it("rejects interview_scores.dsa_score = 101", async () => {
     const s = await db.interviewSession.create({
       data: {
@@ -215,9 +211,7 @@ describe("CHECK constraints — score columns must be 0-100", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 2. CHECK constraints — enum / status columns
-// ---------------------------------------------------------------------------
+// 2. check constraints on enum and status columns
 describe("CHECK constraints — enum / status columns", () => {
   let uid: string;
   beforeAll(async () => {
@@ -365,9 +359,7 @@ describe("CHECK constraints — enum / status columns", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 3. CASCADE DELETE
-// ---------------------------------------------------------------------------
+// 3. cascade delete tests
 describe("CASCADE DELETE — deleting a User removes all dependent rows", () => {
   let uid: string;
   let sid: string;
@@ -484,9 +476,7 @@ describe("CASCADE DELETE — deleting a User removes all dependent rows", () => 
   });
 });
 
-// ---------------------------------------------------------------------------
-// 4. SET NULL — audit_logs.user_id
-// ---------------------------------------------------------------------------
+// 4. set null on audit logs
 describe("SET NULL — audit_logs.user_id becomes NULL after user deletion", () => {
   it("preserves audit_log row with user_id = NULL", async () => {
     const uid = await createUser("_audit_null");
@@ -501,9 +491,7 @@ describe("SET NULL — audit_logs.user_id becomes NULL after user deletion", () 
   });
 });
 
-// ---------------------------------------------------------------------------
-// 5. SET NULL — problem_bank.reviewed_by on reviewer delete
-// ---------------------------------------------------------------------------
+// 5. set null on reviewer delete
 describe("SET NULL — problem_bank.reviewed_by is NULL after reviewer user is deleted", () => {
   it("sets reviewed_by to NULL", async () => {
     const adminId = await createUser("_reviewer");
@@ -526,9 +514,7 @@ describe("SET NULL — problem_bank.reviewed_by is NULL after reviewer user is d
   });
 });
 
-// ---------------------------------------------------------------------------
-// 6. SET NULL — interview_problems.problem_bank_id on bank problem delete
-// ---------------------------------------------------------------------------
+// 6. set null on bank problem delete
 describe("SET NULL — interview_problems.problem_bank_id is NULL after bank problem deleted", () => {
   let sessionUserId: string;
   beforeAll(async () => {
@@ -579,9 +565,7 @@ describe("SET NULL — interview_problems.problem_bank_id is NULL after bank pro
   });
 });
 
-// ---------------------------------------------------------------------------
-// 7. Partial / composite index existence
-// ---------------------------------------------------------------------------
+// 7. partial and composite indexes
 describe("Partial / composite indexes — confirmed in pg_indexes", () => {
   async function has(table: string, idx: string): Promise<boolean> {
     const rows = await db.$queryRaw<Array<{ indexname: string }>>`
@@ -638,9 +622,7 @@ describe("Partial / composite indexes — confirmed in pg_indexes", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 8. ProblemBank FK linkage — happy path
-// ---------------------------------------------------------------------------
+// 8. problem bank fk linkage
 describe("ProblemBank FK — interview_problems.problem_bank_id linkage", () => {
   let adminId: string;
   let sessionUserId: string;
@@ -682,7 +664,7 @@ describe("ProblemBank FK — interview_problems.problem_bank_id linkage", () => 
     try {
       await db.problemBank.delete({ where: { id: probId } });
     } catch {
-      /* gone */
+      // already deleted
     }
     await deleteUser(adminId);
   });

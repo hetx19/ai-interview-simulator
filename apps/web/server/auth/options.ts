@@ -20,7 +20,7 @@ export const authOptions: AuthOptions = {
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
       authorization: {
         params: {
-          // Least-privilege: public activity only. No private repo access.
+          // only need public repo and email data
           scope: "read:user user:email public_repo",
         },
       },
@@ -51,23 +51,20 @@ export const authOptions: AuthOptions = {
 
   pages: {
     signIn: "/login",
-    error: "/login", // Surfaced via ?error= on login page
+    error: "/login", // passes ?error= to login page
   },
 
   callbacks: {
-    /**
-     * signIn callback — runs before a session is created.
-     * Enforces verified-email account linking to prevent account takeover.
-     */
+    // verify email before linking so accounts can't be hijacked
     async signIn({ user, account, profile }) {
       if (!user.email) {
         return "/login?error=EmailRequired";
       }
 
-      // Check email verification from provider
+      // check if provider verified the email
       let isEmailVerified = false;
       if (account?.provider === "google") {
-        isEmailVerified = true; // Google OAuth guarantees verified emails
+        isEmailVerified = true; // google emails are already verified
       } else if (account?.provider === "github") {
         const p = profile as Record<string, unknown> | undefined;
         isEmailVerified = p?.email_verified === true || p?.verified === true;
@@ -97,10 +94,7 @@ export const authOptions: AuthOptions = {
       return true;
     },
 
-    /**
-     * session callback — runs on every authenticated request.
-     * Attaches user ID and performs 24h session token rotation.
-     */
+    // attach user id and rotate session tokens older than 24h
     async session({ session, user }) {
       if (session.user && user) {
         session.user.id = user.id;
@@ -120,7 +114,7 @@ export const authOptions: AuthOptions = {
 
   events: {
     async signIn({ user, account }) {
-      // Optional logging or audit tracking for auth events
+      // hook for auth event telemetry if needed later
     },
   },
 };

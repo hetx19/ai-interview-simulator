@@ -35,13 +35,13 @@ export async function validateAndRotateSession(
     return { valid: false, rotated: false, sessionToken };
   }
 
-  // Reject deleted users
+  // don't allow soft-deleted accounts
   if (dbSession.user.deletedAt !== null) {
     await db.session.delete({ where: { sessionToken } }).catch(() => {});
     return { valid: false, rotated: false, sessionToken };
   }
 
-  // Reject expired sessions
+  // drop expired session
   if (dbSession.expires.getTime() <= now) {
     await db.session.delete({ where: { sessionToken } }).catch(() => {});
     return { valid: false, rotated: false, sessionToken };
@@ -49,12 +49,12 @@ export async function validateAndRotateSession(
 
   const sessionAgeMs = now - dbSession.createdAt.getTime();
 
-  // Check if session exceeds the 24-hour rotation threshold
+  // rotate token once it hits the 24h mark
   if (sessionAgeMs > ROTATION_THRESHOLD_MS) {
     const newSessionToken = randomBytes(32).toString("hex");
     const newExpiry = new Date(now + SESSION_MAX_AGE_MS);
 
-    // Atomically rotate: replace old token with new token and reset createdAt
+    // swap in new token and bump createdAt
     const updated = await db.session.update({
       where: { id: dbSession.id },
       data: {
@@ -79,7 +79,7 @@ export async function validateAndRotateSession(
     };
   }
 
-  // Session is valid and within the 24-hour window — do not rotate
+  // still fresh, keep existing token
   return {
     valid: true,
     rotated: false,

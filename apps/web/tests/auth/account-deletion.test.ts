@@ -11,7 +11,7 @@ describe("Account Deletion Capability (Stage 2 Auth/Session Layer)", () => {
   const adapter = EncryptedPrismaAdapter(db);
 
   beforeAll(async () => {
-    // 1. Create a user
+    // create user
     const user = await adapter.createUser!({
       id: "",
       email: `deletion_test_${Date.now()}@example.com`,
@@ -21,7 +21,7 @@ describe("Account Deletion Capability (Stage 2 Auth/Session Layer)", () => {
     });
     userId = user.id;
 
-    // 2. Create multiple active sessions for this user
+    // create active sessions
     sessionToken1 = `del_token_1_${Date.now()}`;
     sessionToken2 = `del_token_2_${Date.now()}`;
 
@@ -49,26 +49,26 @@ describe("Account Deletion Capability (Stage 2 Auth/Session Layer)", () => {
   });
 
   it("invalidates all active sessions and marks deletion intent (deletedAt) upon deleteAccount", async () => {
-    // Verify sessions are active before deletion
+    // verify sessions active before deletion
     const beforeResult1 = await validateAndRotateSession(sessionToken1);
     const beforeResult2 = await validateAndRotateSession(sessionToken2);
     expect(beforeResult1.valid).toBe(true);
     expect(beforeResult2.valid).toBe(true);
 
-    // Call deleteAccount
+    // trigger account deletion
     const result = await deleteAccount(userId);
 
     expect(result.success).toBe(true);
     expect(result.userId).toBe(userId);
     expect(result.sessionsInvalidated).toBe(2);
 
-    // Verify all active sessions were removed from PostgreSQL
+    // verify sessions removed from db
     const remainingSessions = await db.session.count({
       where: { userId },
     });
     expect(remainingSessions).toBe(0);
 
-    // Verify deletion intent is marked on the user record using existing schema
+    // verify deletedAt timestamp set
     const updatedUser = await db.user.findUnique({
       where: { id: userId },
     });
@@ -76,7 +76,7 @@ describe("Account Deletion Capability (Stage 2 Auth/Session Layer)", () => {
     expect(updatedUser!.deletedAt).not.toBeNull();
     expect(updatedUser!.deletedAt).toBeInstanceOf(Date);
 
-    // Verify that previously valid session tokens can no longer authenticate
+    // verify tokens cannot authenticate
     const afterResult1 = await validateAndRotateSession(sessionToken1);
     const afterResult2 = await validateAndRotateSession(sessionToken2);
     expect(afterResult1.valid).toBe(false);

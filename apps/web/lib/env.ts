@@ -9,17 +9,17 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
-    // NextAuth
+    // nextauth
     NEXTAUTH_SECRET: z.string().min(32),
-    // GitHub OAuth
+    // github oauth
     GITHUB_CLIENT_ID: z.string().min(1),
     GITHUB_CLIENT_SECRET: z.string().min(1),
     GITHUB_TOKEN_ENCRYPTION_KEY: z.string().length(64),
-    // Google OAuth
+    // google oauth
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
     JWT_SECRET: z.string().length(128),
-    // Upstash Redis / Vercel KV
+    // redis / kv
     KV_REST_API_URL: z.string().url(),
     KV_REST_API_TOKEN: z.string().min(1),
     GROQ_API_KEY: z.string().min(1),

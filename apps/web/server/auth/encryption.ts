@@ -2,8 +2,8 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { db } from "@/lib/prisma";
 
 const ALGORITHM = "aes-256-gcm";
-const IV_BYTES = 12; // 96-bit standard nonce for GCM
-const TAG_BYTES = 16; // 128-bit authentication tag
+const IV_BYTES = 12; // 96-bit nonce for gcm
+const TAG_BYTES = 16; // 128-bit auth tag
 
 function getKey(): Buffer {
   const hex =
@@ -24,10 +24,7 @@ function getKey(): Buffer {
   return Buffer.from(hex, "hex");
 }
 
-/**
- * Encrypts a plaintext string using AES-256-GCM with a unique random IV per operation.
- * Returns formatted ciphertext string: `iv.ciphertext.tag` (all hex encoded).
- */
+// encrypts string to iv.ciphertext.tag using aes-256-gcm
 export function encryptToken(plaintext: string): string {
   if (!plaintext) return plaintext;
   const key = getKey();
@@ -47,10 +44,7 @@ export function encryptToken(plaintext: string): string {
   ].join(".");
 }
 
-/**
- * Decrypts a stored `iv.ciphertext.tag` string using AES-256-GCM.
- * Validates format, IV length, auth tag length, and verifies ciphertext integrity.
- */
+// decrypts iv.ciphertext.tag and verifies the auth tag
 export function decryptToken(stored: string): string {
   if (!stored) return stored;
   const parts = stored.split(".");
@@ -88,10 +82,7 @@ export function decryptToken(stored: string): string {
   return plaintext.toString("utf8");
 }
 
-/**
- * Retrieves and decrypts the OAuth access token for a user and provider.
- * Returns null if no account exists or token is missing.
- */
+// read and decrypt oauth access token
 export async function getDecryptedAccessToken(
   userId: string,
   provider: string,
@@ -114,10 +105,7 @@ export async function getDecryptedAccessToken(
   }
 }
 
-/**
- * Retrieves and decrypts the OAuth refresh token for a user and provider.
- * Returns null if no account exists or token is missing.
- */
+// read and decrypt oauth refresh token
 export async function getDecryptedRefreshToken(
   userId: string,
   provider: string,

@@ -2,9 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
-// ---------------------------------------------------------------------------
-// Connection Pool
-// ---------------------------------------------------------------------------
+// pool config
 const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {
@@ -27,9 +25,7 @@ function createPool(): Pool {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Prisma Client Factory
-// ---------------------------------------------------------------------------
+// prisma client factory
 function createPrismaClient(): PrismaClient {
   const pool = createPool();
   const adapter = new PrismaPg(pool);
@@ -60,9 +56,7 @@ function createPrismaClient(): PrismaClient {
   return client;
 }
 
-// ---------------------------------------------------------------------------
-// Global Singleton
-// ---------------------------------------------------------------------------
+// reuse client in dev to prevent leaking connections on hmr
 declare global {
   // eslint-disable-next-line no-var
   var __prisma: PrismaClient | undefined;
@@ -74,9 +68,7 @@ if (process.env.NODE_ENV !== "production") {
   globalThis.__prisma = db;
 }
 
-// ---------------------------------------------------------------------------
-// Health check helper
-// ---------------------------------------------------------------------------
+// db health check ping
 export async function checkDatabaseHealth(): Promise<boolean> {
   await db.$queryRaw`SELECT 1`;
   return true;

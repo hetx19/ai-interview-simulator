@@ -13,10 +13,7 @@ export { validateAndRotateSession } from "./session";
 export { handleAccountLinking } from "./linking";
 export { EncryptedPrismaAdapter } from "./adapter";
 
-/**
- * Server-side helper to retrieve the authenticated session in Server Components,
- * Route Handlers, and Server Actions.
- */
+// session helper for server components and routes
 export async function auth() {
   return await getServerSession(authOptions);
 }

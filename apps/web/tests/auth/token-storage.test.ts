@@ -15,7 +15,7 @@ describe("OAuth Token Storage & Persistence Encryption", () => {
   beforeAll(async () => {
     process.env.TOKEN_ENCRYPTION_KEY = TEST_KEY;
 
-    // Create test user
+    // test user
     const user = await adapter.createUser!({
       id: "",
       email: `token_storage_test_${Date.now()}@example.com`,
@@ -49,7 +49,7 @@ describe("OAuth Token Storage & Persistence Encryption", () => {
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     });
 
-    // Directly query database row to verify ciphertext at rest
+    // query db to verify encrypted token
     const storedAccount = await db.account.findUnique({
       where: {
         provider_providerAccountId: {
@@ -60,17 +60,17 @@ describe("OAuth Token Storage & Persistence Encryption", () => {
     });
 
     expect(storedAccount).not.toBeNull();
-    // 1. Plaintext tokens must NOT be stored at rest
+    // tokens should not be stored as plaintext
     expect(storedAccount!.accessToken).not.toBe(rawAccessToken);
     expect(storedAccount!.accessToken).not.toContain(rawAccessToken);
     expect(storedAccount!.refreshToken).not.toBe(rawRefreshToken);
     expect(storedAccount!.refreshToken).not.toContain(rawRefreshToken);
 
-    // 2. Format must be iv.ciphertext.tag
+    // check iv.ciphertext.tag format
     expect(storedAccount!.accessToken!.split(".")).toHaveLength(3);
     expect(storedAccount!.refreshToken!.split(".")).toHaveLength(3);
 
-    // 3. Decryption helpers must correctly recover the original plaintext
+    // verify decryption returns original token
     const decryptedAccess = await getDecryptedAccessToken(userId, "github");
     const decryptedRefresh = await getDecryptedRefreshToken(userId, "github");
 

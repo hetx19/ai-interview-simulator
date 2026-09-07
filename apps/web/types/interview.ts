@@ -7,9 +7,7 @@ import type {
   ProblemBank as PrismaProblemBank,
 } from "@prisma/client";
 
-// ---------------------------------------------------------------------------
-// Re-exported Prisma types
-// ---------------------------------------------------------------------------
+// prisma re-exports
 export type InterviewSession = PrismaInterviewSession;
 export type InterviewProblem = PrismaInterviewProblem;
 export type InterviewSubmission = PrismaInterviewSubmission;
@@ -17,9 +15,7 @@ export type InterviewScores = PrismaInterviewScores;
 export type VoiceTranscript = PrismaVoiceTranscript;
 export type ProblemBank = PrismaProblemBank;
 
-// ---------------------------------------------------------------------------
-// Domain enums
-// ---------------------------------------------------------------------------
+// enums
 export const INTERVIEW_DIFFICULTY = ["easy", "medium", "hard"] as const;
 export type InterviewDifficulty = (typeof INTERVIEW_DIFFICULTY)[number];
 
@@ -33,10 +29,7 @@ export type InterviewStatus = (typeof INTERVIEW_STATUS)[number];
 export const TRANSCRIPT_SPEAKER = ["user", "ai"] as const;
 export type TranscriptSpeaker = (typeof TRANSCRIPT_SPEAKER)[number];
 
-// ---------------------------------------------------------------------------
-// Composite / enriched types used across service and API layers
-// ---------------------------------------------------------------------------
-
+// composite interview types
 export type InterviewSessionWithDetails = InterviewSession & {
   problem: InterviewProblem | null;
   scores: InterviewScores | null;
@@ -74,8 +67,8 @@ export interface InterviewReport {
 export interface ExecutionResult {
   stdout: string | null;
   stderr: string | null;
-  time: string | null; // seconds as string from Judge0
-  memory: number | null; // KB
+  time: string | null; // seconds from judge0
+  memory: number | null; // kb
   status: { id: number; description: string };
   testCases: Array<{
     input: string;

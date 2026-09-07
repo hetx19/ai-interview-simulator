@@ -10,7 +10,7 @@ describe("Database Session Management & 24-Hour Rotation", () => {
   let userId: string;
 
   beforeAll(async () => {
-    // Create test user
+    // test user
     const user = await db.user.create({
       data: {
         email: `session_test_${Date.now()}@example.com`,
@@ -60,7 +60,7 @@ describe("Database Session Management & 24-Hour Rotation", () => {
       },
     });
 
-    // Simulate session age of exactly 23 hours (below 24h threshold)
+    // mock 23h session age
     const simulatedNow = session.createdAt.getTime() + 23 * 60 * 60 * 1000;
     const result = await validateAndRotateSession(sessionToken, simulatedNow);
 
@@ -81,7 +81,7 @@ describe("Database Session Management & 24-Hour Rotation", () => {
       },
     });
 
-    // Simulate session age of 25 hours (> 24 hours)
+    // mock 25h session age
     const simulatedNow = session.createdAt.getTime() + (ROTATION_THRESHOLD_MS + 3600 * 1000);
     const result = await validateAndRotateSession(oldSessionToken, simulatedNow);
 
@@ -90,27 +90,27 @@ describe("Database Session Management & 24-Hour Rotation", () => {
     expect(result.sessionToken).not.toBe(oldSessionToken);
     expect(result.userId).toBe(userId);
 
-    // Verify in database: replacement token exists and is associated with the same user
+    // verify new session in db
     const dbNewSession = await db.session.findUnique({
       where: { sessionToken: result.sessionToken },
     });
     expect(dbNewSession).not.toBeNull();
     expect(dbNewSession!.userId).toBe(userId);
 
-    // Verify that the old session token has been invalidated in the database
+    // verify old session invalidated
     const dbOldSession = await db.session.findUnique({
       where: { sessionToken: oldSessionToken },
     });
     expect(dbOldSession).toBeNull();
 
-    // Verify that the old session token can NO LONGER be used to authenticate
+    // verify old token cannot authenticate
     const oldTokenAuthResult = await validateAndRotateSession(oldSessionToken);
     expect(oldTokenAuthResult.valid).toBe(false);
   });
 
   it("rejects an expired session and removes it from the database", async () => {
     const expiredSessionToken = `token_expired_${randomBytes(16).toString("hex")}`;
-    const pastDate = new Date(Date.now() - 60 * 1000); // Expired 1 minute ago
+    const pastDate = new Date(Date.now() - 60 * 1000); // expired 1m ago
 
     await db.session.create({
       data: {
@@ -125,7 +125,7 @@ describe("Database Session Management & 24-Hour Rotation", () => {
     expect(result.valid).toBe(false);
     expect(result.rotated).toBe(false);
 
-    // Should be removed from database
+    // verify removed from db
     const dbCheck = await db.session.findUnique({
       where: { sessionToken: expiredSessionToken },
     });

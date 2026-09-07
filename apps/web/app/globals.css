@@ -1,26 +1,231 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@source "../**/*.{js,ts,jsx,tsx,mdx}";
+@source "../../**/*.{js,ts,jsx,tsx,mdx}";
+
+/* ─── Stitch Design Tokens ──────────────────────────────────────────────── */
+@theme {
+  /* Fonts */
+  --font-sans: var(--font-geist-sans), "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  --font-display: var(--font-sora), "Sora", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sora: var(--font-sora), "Sora", ui-sans-serif, system-ui, sans-serif;
+
+  /* Named font tokens matching Stitch tailwind.config */
+  --font-display-lg: var(--font-sora), "Sora", ui-sans-serif, sans-serif;
+  --font-display-lg-mobile: var(--font-sora), "Sora", ui-sans-serif, sans-serif;
+  --font-headline-lg: var(--font-sora), "Sora", ui-sans-serif, sans-serif;
+  --font-headline-lg-mobile: var(--font-sora), "Sora", ui-sans-serif, sans-serif;
+  --font-headline-md: var(--font-sora), "Sora", ui-sans-serif, sans-serif;
+  --font-headline-sm: var(--font-sora), "Sora", ui-sans-serif, sans-serif;
+  --font-title-md: var(--font-sora), "Sora", ui-sans-serif, sans-serif;
+  --font-body-lg: var(--font-geist-sans), "Geist", ui-sans-serif, sans-serif;
+  --font-body-md: var(--font-geist-sans), "Geist", ui-sans-serif, sans-serif;
+  --font-body-sm: var(--font-geist-sans), "Geist", ui-sans-serif, sans-serif;
+  --font-label-md: var(--font-geist-sans), "Geist", ui-sans-serif, sans-serif;
+  --font-label-sm: var(--font-geist-sans), "Geist", ui-sans-serif, sans-serif;
+
+  /* Typography scale matching Stitch */
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 56px;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-lg--font-weight: 600;
+
+  --text-display-lg-mobile: 32px;
+  --text-display-lg-mobile--line-height: 40px;
+  --text-display-lg-mobile--letter-spacing: -0.015em;
+  --text-display-lg-mobile--font-weight: 600;
+
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 40px;
+  --text-headline-lg--letter-spacing: -0.015em;
+  --text-headline-lg--font-weight: 600;
+
+  --text-headline-lg-mobile: 24px;
+  --text-headline-lg-mobile--line-height: 32px;
+  --text-headline-lg-mobile--letter-spacing: -0.01em;
+  --text-headline-lg-mobile--font-weight: 600;
+
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 32px;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 500;
+
+  --text-headline-sm: 18px;
+  --text-headline-sm--line-height: 26px;
+  --text-headline-sm--letter-spacing: 0;
+  --text-headline-sm--font-weight: 600;
+
+  --text-title-md: 16px;
+  --text-title-md--line-height: 24px;
+  --text-title-md--letter-spacing: 0;
+  --text-title-md--font-weight: 500;
+
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 26px;
+  --text-body-lg--letter-spacing: -0.005em;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 14px;
+  --text-body-md--line-height: 22px;
+  --text-body-md--letter-spacing: 0;
+  --text-body-md--font-weight: 400;
+
+  --text-body-sm: 12px;
+  --text-body-sm--line-height: 18px;
+  --text-body-sm--letter-spacing: 0.01em;
+  --text-body-sm--font-weight: 400;
+
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--letter-spacing: 0.02em;
+  --text-label-md--font-weight: 500;
+
+  --text-label-sm: 10px;
+  --text-label-sm--line-height: 14px;
+  --text-label-sm--letter-spacing: 0.06em;
+  --text-label-sm--font-weight: 600;
+
+  /* Core surfaces */
+  --color-background:                #13131b;
+  --color-surface:                   #13131b;
+  --color-surface-dim:               #13131b;
+  --color-surface-bright:            #393841;
+  --color-surface-container-lowest:  #0d0d15;
+  --color-surface-container-low:     #1b1b23;
+  --color-surface-container:         #1f1f27;
+  --color-surface-container-high:    #292932;
+  --color-surface-container-highest: #34343d;
+  --color-surface-variant:           #34343d;
+  --color-surface-tint:              #c0c1ff;
+
+  /* Primary */
+  --color-primary:                   #e1dfff;
+  --color-primary-container:         #c0c1ff;
+  --color-primary-fixed:             #e1e0ff;
+  --color-primary-fixed-dim:         #c0c1ff;
+  --color-on-primary:                #292b5e;
+  --color-on-primary-container:      #4b4d83;
+  --color-on-primary-fixed:          #131449;
+  --color-on-primary-fixed-variant:  #404176;
+  --color-inverse-primary:           #585990;
+
+  /* Secondary (Emerald Green) */
+  --color-secondary:                 #6bde80;
+  --color-secondary-container:       #2da54f;
+  --color-secondary-fixed:           #87fb99;
+  --color-secondary-fixed-dim:       #6bde80;
+  --color-on-secondary:              #003913;
+  --color-on-secondary-container:    #003210;
+  --color-on-secondary-fixed:        #002108;
+  --color-on-secondary-fixed-variant:#00531f;
+
+  /* Tertiary (Warm Amber) */
+  --color-tertiary:                  #ffdcba;
+  --color-tertiary-container:        #ffb867;
+  --color-tertiary-fixed:            #ffddbb;
+  --color-tertiary-fixed-dim:        #ffb868;
+  --color-on-tertiary:               #482900;
+  --color-on-tertiary-container:     #774700;
+  --color-on-tertiary-fixed:         #2b1700;
+  --color-on-tertiary-fixed-variant: #673d00;
+
+  /* Error */
+  --color-error:                     #ffb4ab;
+  --color-error-container:           #93000a;
+  --color-on-error:                  #690005;
+  --color-on-error-container:        #ffdad6;
+
+  /* Text / On */
+  --color-on-surface:                #e4e1ed;
+  --color-on-surface-variant:        #c7c5d0;
+  --color-on-background:             #e4e1ed;
+  --color-inverse-surface:           #e4e1ed;
+  --color-inverse-on-surface:        #303038;
+
+  /* Outline */
+  --color-outline:                   #918f9a;
+  --color-outline-variant:           #46464f;
+
+  /* Border Radii (Stitch roundedness scale) */
+  --radius-sm:   0.25rem;
+  --radius:      0.5rem;
+  --radius-lg:   0.5rem;
+  --radius-xl:   0.75rem;
+  --radius-2xl:  1rem;
+  --radius-3xl:  1.5rem;
+  --radius-full: 9999px;
+
+  /* Spacing (Stitch 8pt grid) */
+  --spacing-space-2xs:      0.125rem;
+  --spacing-space-xs:       0.25rem;
+  --spacing-space-sm:       0.5rem;
+  --spacing-space-md:       0.75rem;
+  --spacing-space-base:     1rem;
+  --spacing-space-lg:       1.5rem;
+  --spacing-space-xl:       2rem;
+  --spacing-space-2xl:      3rem;
+  --spacing-space-3xl:      4rem;
+  --spacing-gutter-mobile:  1rem;
+  --spacing-gutter-desktop: 1.5rem;
+  --spacing-container-max:  1440px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ─── Base Layer ────────────────────────────────────────────────────────── */
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    background-color: #13131b;
+    color: #e4e1ed;
+    font-family: var(--font-geist-sans), "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Headings use Sora */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sora), "Sora", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Hide native scrollbars (matches Stitch HTML) */
+  ::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; }
+
+  /* Smooth transitions on interactive elements */
+  a, button { transition: all 150ms ease-in-out; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid #c0c1ff;
+    outline-offset: 2px;
+    border-radius: 0.5rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─── Material Symbols utility ──────────────────────────────────────────── */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.25rem;
+  line-height: 1;
+  display: inline-block;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga';
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
 }
+

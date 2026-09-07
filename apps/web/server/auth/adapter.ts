@@ -3,11 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { encryptToken, decryptToken } from "./encryption";
 import { randomBytes } from "crypto";
 
-/**
- * Creates a custom encrypted Prisma Adapter for NextAuth.
- * Ensures OAuth access_token and refresh_token are encrypted before writing to PostgreSQL
- * and decrypted when read, preventing plaintext credentials from ever touching the database.
- */
+// custom next-auth adapter that keeps oauth tokens encrypted in the db
 export function EncryptedPrismaAdapter(prisma: PrismaClient): Adapter {
   return {
     async createUser(data: Omit<AdapterUser, "id">): Promise<AdapterUser> {
@@ -122,7 +118,7 @@ export function EncryptedPrismaAdapter(prisma: PrismaClient): Adapter {
     },
 
     async linkAccount(account: AdapterAccount): Promise<AdapterAccount | null | undefined> {
-      // Encrypt OAuth tokens before database write
+      // encrypt tokens before saving to db
       const encryptedAccessToken = account.access_token
         ? encryptToken(account.access_token)
         : null;
@@ -234,7 +230,7 @@ export function EncryptedPrismaAdapter(prisma: PrismaClient): Adapter {
       try {
         await prisma.session.delete({ where: { sessionToken } });
       } catch {
-        // Session may already be deleted/invalidated
+        // ignore if already cleaned up
       }
     },
   };

@@ -1,12 +1,7 @@
 import { db } from "@/lib/prisma";
 import type { User } from "@prisma/client";
 
-// ---------------------------------------------------------------------------
-// Lightweight value types returned by focused queries.
-// Route handlers and layouts receive only the fields they need — never the
-// full User row — to avoid accidental exposure of sensitive columns.
-// ---------------------------------------------------------------------------
-
+// lightweight types for targeted queries so callers don't over-fetch
 export interface OnboardingState {
   onboardingStep: string;
   onboardingCompleted: boolean;
@@ -16,54 +11,33 @@ export interface DashboardGate {
   onboardingCompleted: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// UserRepository
-//
-// Enforces the Repository pattern from skills.md §4:
-//   "API routes and services never call Prisma directly."
-//
-// All DB access for the `users`, `sessions`, and `accounts` tables goes
-// through this class. Callers depend on this interface, not on Prisma.
-// ---------------------------------------------------------------------------
+// db access layer for users, sessions, and accounts
 export class UserRepository {
-  // ─── Read operations ─────────────────────────────────────────────────────
-
-  /**
-   * Find an active (non-deleted) user by primary key.
-   * Returns null when the user does not exist or has been soft-deleted.
-   */
+  // fetch active user by id
   async findById(id: string): Promise<User | null> {
     return db.user.findFirst({
       where: { id, deletedAt: null },
     });
   }
 
-  /**
-   * Same as findById, but throws a typed Error when the user is missing.
-   * Use in contexts where a missing user is always a programming error
-   * (e.g. after confirming a valid session exists).
-   */
+  // throws if user isn't found
   async findByIdOrThrow(id: string): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
-      // Note: will be replaced with NotFoundError when server/errors.ts is
-      // introduced in Stage 3.
+      // TODO: replace with NotFoundError once stage 3 error types are in
       throw new Error(`User not found: ${id}`);
     }
     return user;
   }
 
-  /** Find an active user by email address. */
+  // fetch active user by email
   async findByEmail(email: string): Promise<User | null> {
     return db.user.findFirst({
       where: { email, deletedAt: null },
     });
   }
 
-  /**
-   * Returns only the two onboarding fields needed by the onboarding page
-   * and the onboarding API route. Avoids over-fetching the full User row.
-   */
+  // only fetch onboarding fields needed by the wizard
   async findOnboardingState(userId: string): Promise<OnboardingState | null> {
     return db.user.findFirst({
       where: { id: userId, deletedAt: null },
@@ -71,10 +45,7 @@ export class UserRepository {
     });
   }
 
-  /**
-   * Returns only the onboarding completion flag needed by the dashboard
-   * layout to decide whether to redirect to /onboarding.
-   */
+  // check if user completed onboarding for dashboard redirect
   async findDashboardGate(userId: string): Promise<DashboardGate | null> {
     return db.user.findFirst({
       where: { id: userId, deletedAt: null },
@@ -82,18 +53,7 @@ export class UserRepository {
     });
   }
 
-  // ─── Provider / Account helpers ──────────────────────────────────────────
-
-  /**
-   * Returns true when the user has at least one linked OAuth account for the
-   * given provider (e.g. "github", "google").
-   *
-   * Used by:
-   *  - The onboarding wizard to show "GitHub connected" state.
-   *  - PATCH /api/v1/user/onboarding to check if GitHub is linked before
-   *    advancing past CONNECT_GITHUB (without requiring a raw db.account call
-   *    in the route handler).
-   */
+  // check if user has a specific provider linked
   async hasProvider(userId: string, provider: string): Promise<boolean> {
     const account = await db.account.findFirst({
       where: { userId, provider },
@@ -102,11 +62,7 @@ export class UserRepository {
     return account !== null;
   }
 
-  /**
-   * Returns true when the user has at least one linked OAuth account of any
-   * provider. Used to allow Google-only users to proceed through onboarding
-   * without being forced to link GitHub first.
-   */
+  // check if user has any oauth account linked
   async hasAnyLinkedAccount(userId: string): Promise<boolean> {
     const account = await db.account.findFirst({
       where: { userId },
@@ -115,9 +71,7 @@ export class UserRepository {
     return account !== null;
   }
 
-  // ─── Write operations ─────────────────────────────────────────────────────
-
-  /** Persist the current onboarding step and completion flag to the database. */
+  // update onboarding progress
   async updateOnboardingStep(
     userId: string,
     step: string,
@@ -133,19 +87,12 @@ export class UserRepository {
     });
   }
 
-  /**
-   * Hard-delete the user row. Child rows in all related tables are removed
-   * automatically by PostgreSQL ON DELETE CASCADE (accounts, sessions,
-   * github_profiles, leetcode_profiles, resumes, interview_sessions, …).
-   * audit_logs.user_id is SET NULL to preserve the audit trail.
-   */
+  // delete user (cascades to child tables via postgres)
   async deleteUser(userId: string): Promise<void> {
     await db.user.delete({ where: { id: userId } });
   }
 
-  // ─── Session helpers ──────────────────────────────────────────────────────
-
-  /** Removes all DB sessions whose expiry timestamp is in the past. */
+  // purge expired sessions
   async deleteExpiredSessions(): Promise<number> {
     const { count } = await db.session.deleteMany({
       where: { expires: { lt: new Date() } },
@@ -154,5 +101,5 @@ export class UserRepository {
   }
 }
 
-// Singleton — import this everywhere instead of constructing a new instance.
+// singleton instance
 export const userRepository = new UserRepository();

@@ -14,14 +14,7 @@ export interface AccountLinkingResult {
   isNewUser?: boolean;
 }
 
-/**
- * Handles explicit and safe OAuth account linking.
- * Ensures:
- * 1. An existing user can link a secondary OAuth provider ONLY if the provider reports a verified email.
- * 2. Unverified emails can NEVER trigger automatic account merging (prevents account takeover).
- * 3. Existing user identity, profiles, and sessions are preserved when linking another provider.
- * 4. Duplicate provider/account links to different users are safely rejected.
- */
+// links oauth providers safely (requires verified email to merge accounts)
 export async function handleAccountLinking({
   email,
   provider,
@@ -32,7 +25,7 @@ export async function handleAccountLinking({
     return { allowed: false, error: "EmailRequired" };
   }
 
-  // Check if provider account is already linked to any user
+  // check if this provider account already belongs to someone
   const existingAccount = await db.account.findUnique({
     where: {
       provider_providerAccountId: {
@@ -43,13 +36,13 @@ export async function handleAccountLinking({
     include: { user: true },
   });
 
-  // Check if a user with this email already exists in dev_metric
+  // check if an account with this email already exists
   const existingUser = await db.user.findUnique({
     where: { email },
     include: { accounts: true },
   });
 
-  // Scenario 1: Account already exists and is linked
+  // account is already linked, log them in
   if (existingAccount) {
     if (existingAccount.user.deletedAt !== null) {
       return { allowed: false, error: "AccountDeleted" };
@@ -61,7 +54,7 @@ export async function handleAccountLinking({
     };
   }
 
-  // Scenario 2: Brand new user (no existing user with this email)
+  // new user signup flow
   if (!existingUser) {
     return {
       allowed: true,
@@ -69,12 +62,12 @@ export async function handleAccountLinking({
     };
   }
 
-  // Scenario 3: Existing user found with matching email — linking a second provider
+  // connecting a second provider to existing account
   if (existingUser.deletedAt !== null) {
     return { allowed: false, error: "AccountDeleted" };
   }
 
-  // Security rule: Provider email MUST be verified to link to an existing account
+  // don't merge without a verified email from the provider
   if (!isEmailVerified) {
     return {
       allowed: false,
@@ -82,7 +75,7 @@ export async function handleAccountLinking({
     };
   }
 
-  // Verified email: safely link new provider to the existing user
+  // email is verified, attach provider to existing user
   return {
     allowed: true,
     userId: existingUser.id,

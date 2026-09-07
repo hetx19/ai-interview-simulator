@@ -18,6 +18,7 @@ describe("Middleware Authentication Guard & Route Protection", () => {
     it("recognizes exact public paths", () => {
       expect(isPublicRoute("/")).toBe(true);
       expect(isPublicRoute("/login")).toBe(true);
+      expect(isPublicRoute("/signup")).toBe(true);
     });
 
     it("recognizes public developer profiles (/u/*)", () => {
@@ -52,12 +53,12 @@ describe("Middleware Authentication Guard & Route Protection", () => {
       expect(isPublicRoute("/api/v1/user/profile")).toBe(false);
       expect(isPublicRoute("/api/v1/github/sync")).toBe(false);
       expect(isPublicRoute("/api/graphql")).toBe(false);
-      expect(isPublicRoute("/u-settings")).toBe(false); // Colliding prefix test
+      expect(isPublicRoute("/u-settings")).toBe(false); // colliding prefix
     });
   });
 
   describe("Middleware response behavior", () => {
-    // 1. Public application routes
+    // 1. public app routes
     it("allows unauthenticated requests to public application route (/)", () => {
       const req = createMockRequest("/");
       const res = middleware(req);
@@ -79,7 +80,7 @@ describe("Middleware Authentication Guard & Route Protection", () => {
       expect(res.headers.get("location")).toBeNull();
     });
 
-    // 2. Public API routes
+    // 2. public api routes
     it("allows unauthenticated requests to public API route (/api/auth/session)", () => {
       const req = createMockRequest("/api/auth/session");
       const res = middleware(req);
@@ -92,7 +93,7 @@ describe("Middleware Authentication Guard & Route Protection", () => {
       expect(res.status).toBe(200);
     });
 
-    // 3. Protected API routes
+    // 3. protected api routes
     it("returns 401 JSON for unauthenticated request to protected API route (/api/v1/github/sync)", async () => {
       const req = createMockRequest("/api/v1/github/sync");
       const res = middleware(req);
@@ -119,7 +120,7 @@ describe("Middleware Authentication Guard & Route Protection", () => {
       expect(res.status).toBe(401);
     });
 
-    // 4. Protected application routes
+    // 4. protected app routes
     it("redirects unauthenticated request to protected application route (/dashboard) to /login with callbackUrl", () => {
       const req = createMockRequest("/dashboard");
       const res = middleware(req);
@@ -149,7 +150,7 @@ describe("Middleware Authentication Guard & Route Protection", () => {
       expect(location).toContain("callbackUrl=%2Fonboarding");
     });
 
-    // 5. Authenticated requests
+    // 5. authenticated requests
     it("allows authenticated request with valid session token cookie to access protected page (/dashboard)", () => {
       const req = createMockRequest("/dashboard", {
         "next-auth.session-token": "valid_session_token_123",

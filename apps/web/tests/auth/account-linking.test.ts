@@ -13,7 +13,7 @@ describe("Verified-Email Account Linking & Security", () => {
   beforeAll(async () => {
     process.env.TOKEN_ENCRYPTION_KEY = TEST_KEY;
 
-    // Create existing user with GitHub account
+    // user with github account
     const user = await adapter.createUser!({
       id: "",
       email: userEmail,
@@ -46,14 +46,14 @@ describe("Verified-Email Account Linking & Security", () => {
       email: userEmail,
       provider: "google",
       providerAccountId: googleAccountId,
-      isEmailVerified: true, // Google verifies email
+      isEmailVerified: true, // google verified
     });
 
     expect(linkingResult.allowed).toBe(true);
     expect(linkingResult.userId).toBe(existingUserId);
     expect(linkingResult.isNewUser).toBe(false);
 
-    // Link the account
+    // link account
     await adapter.linkAccount!({
       userId: linkingResult.userId!,
       provider: "google",
@@ -63,7 +63,7 @@ describe("Verified-Email Account Linking & Security", () => {
       token_type: "bearer",
     });
 
-    // Verify existing user identity is preserved with multiple linked accounts
+    // verify user preserved with multiple accounts
     const userAccounts = await db.account.findMany({
       where: { userId: existingUserId },
     });
@@ -78,10 +78,10 @@ describe("Verified-Email Account Linking & Security", () => {
     const maliciousAccountId = `unverified_provider_${Date.now()}`;
 
     const linkingResult = await handleAccountLinking({
-      email: userEmail, // Attacker using victim's email on an unverified provider
+      email: userEmail, // unverified email takeover attempt
       provider: "github",
       providerAccountId: maliciousAccountId,
-      isEmailVerified: false, // Unverified email!
+      isEmailVerified: false, // unverified email
     });
 
     expect(linkingResult.allowed).toBe(false);
@@ -104,7 +104,7 @@ describe("Verified-Email Account Linking & Security", () => {
   });
 
   it("rejects duplicate provider account login if user is marked as deleted", async () => {
-    // Create a deleted user
+    // deleted user
     const deletedUser = await db.user.create({
       data: {
         email: `deleted_user_${Date.now()}@example.com`,

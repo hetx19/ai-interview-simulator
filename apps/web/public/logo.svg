@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <defs>
+    <linearGradient id="cyberGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c0c1ff"/>
+      <stop offset="50%" stop-color="#8083ff"/>
+      <stop offset="100%" stop-color="#6bde80"/>
+    </linearGradient>
+    <filter id="neonBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <rect width="120" height="120" rx="28" fill="#13131b" stroke="#34343d" stroke-width="2"/>
+  <path d="M60 20 L95 38 L95 72 L60 98 L25 72 L25 38 Z" fill="#1b1b23" stroke="url(#cyberGlow)" stroke-width="3.5" filter="url(#neonBlur)" />
+  <path d="M42 50 L52 60 L42 70" stroke="#c0c1ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M64 70 L78 70" stroke="#6bde80" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="60" cy="38" r="4" fill="#c0c1ff" />
+  <circle cx="78" cy="48" r="3.5" fill="#6bde80" />
+</svg>

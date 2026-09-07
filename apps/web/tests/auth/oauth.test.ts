@@ -51,7 +51,7 @@ describe("OAuth Authentication Flow & Error Handling", () => {
       scope: "read:user user:email public_repo",
     };
 
-    // 1. signIn callback
+    // signin callback
     const signInCallback = authOptions.callbacks?.signIn;
     expect(signInCallback).toBeDefined();
 
@@ -63,7 +63,7 @@ describe("OAuth Authentication Flow & Error Handling", () => {
 
     expect(signInResult).toBe(true);
 
-    // 2. adapter createUser + linkAccount
+    // create user and link
     const user = await adapter.createUser!({
       id: "",
       email,
@@ -78,7 +78,7 @@ describe("OAuth Authentication Flow & Error Handling", () => {
       userId: user.id,
     } as any);
 
-    // 3. Verify user and account created in database
+    // check user in db
     const dbUser = await db.user.findUnique({
       where: { id: user.id },
       include: { accounts: true },
@@ -144,14 +144,14 @@ describe("OAuth Authentication Flow & Error Handling", () => {
   it("safely handles OAuth denial / cancellation without crashing", async () => {
     const signInCallback = authOptions.callbacks?.signIn;
 
-    // Missing email or denied scope
+    // missing email check
     const signInResult = await signInCallback!({
       user: { id: "", email: null as any },
       account: { provider: "github", providerAccountId: "123", type: "oauth" } as any,
       profile: {} as any,
     });
 
-    // Returns redirect to login with error rather than throwing/crashing
+    // redirect on error without crash
     expect(typeof signInResult === "string" || signInResult === false).toBe(true);
     if (typeof signInResult === "string") {
       expect(signInResult).toContain("/login?error=");
@@ -159,7 +159,7 @@ describe("OAuth Authentication Flow & Error Handling", () => {
   });
 
   it("safely rejects unverified email callbacks with user-visible redirect", async () => {
-    // Existing user
+    // existing user
     const existingEmail = `existing_user_${Date.now()}@example.com`;
     const existingUser = await adapter.createUser!({
       id: "",
@@ -178,14 +178,14 @@ describe("OAuth Authentication Flow & Error Handling", () => {
 
     const signInCallback = authOptions.callbacks?.signIn;
 
-    // Incoming GitHub login with same email but email_verified = false
+    // unverified github login attempt
     const result = await signInCallback!({
       user: { id: "", email: existingEmail, name: "Attacker" },
       account: { provider: "github", providerAccountId: "unverified_gh_123", type: "oauth" } as any,
       profile: { email_verified: false } as any,
     });
 
-    // Must be redirected to /login with EmailVerificationRequired
+    // redirect to login with verification error
     expect(result).toBe("/login?error=EmailVerificationRequired");
   });
 });

@@ -4,9 +4,7 @@ import { useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 
-// ---------------------------------------------------------------------------
-// Step definitions
-// ---------------------------------------------------------------------------
+// wizard steps
 export type OnboardingStep =
   | "CONNECT_GITHUB"
   | "SET_LEETCODE"
@@ -25,9 +23,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   Default: "An error occurred while connecting your account.",
 };
 
-// ---------------------------------------------------------------------------
-// Helper: persist current step to the DB
-// ---------------------------------------------------------------------------
+// persist step to db
 async function saveStep(step: OnboardingStep, completed: boolean) {
   try {
     await fetch("/api/v1/user/onboarding", {
@@ -40,17 +36,11 @@ async function saveStep(step: OnboardingStep, completed: boolean) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
 interface Props {
   initialStep: OnboardingStep;
   githubConnected: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Wizard component
-// ---------------------------------------------------------------------------
 export function OnboardingWizard({ initialStep, githubConnected }: Props) {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialStep);
   const [leetcodeUsername, setLeetcodeUsername] = useState("");
@@ -89,7 +79,7 @@ export function OnboardingWizard({ initialStep, githubConnected }: Props) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-4">
       <div className="w-full max-w-lg">
-        {/* Header */}
+        {/* header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
             Set up your profile
@@ -99,7 +89,7 @@ export function OnboardingWizard({ initialStep, githubConnected }: Props) {
           </p>
         </div>
 
-        {/* Progress bar */}
+        {/* progress indicator */}
         <div className="flex gap-2 mb-8">
           {STEPS.map((s) => (
             <div
@@ -111,9 +101,9 @@ export function OnboardingWizard({ initialStep, githubConnected }: Props) {
           ))}
         </div>
 
-        {/* Card */}
+        {/* card */}
         <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
-          {/* Error Banner */}
+          {/* error banner */}
           {errorMessage && (
             <div
               id="onboarding-error-banner"
@@ -125,7 +115,7 @@ export function OnboardingWizard({ initialStep, githubConnected }: Props) {
             </div>
           )}
 
-          {/* STEP 1 — Connect GitHub */}
+          {/* step 1: github */}
           {currentStep === "CONNECT_GITHUB" && (
             <div className="space-y-6">
               <div className="flex items-center gap-4">
@@ -192,7 +182,7 @@ export function OnboardingWizard({ initialStep, githubConnected }: Props) {
             </div>
           )}
 
-          {/* STEP 2 — LeetCode Username (UI stub only) */}
+          {/* step 2: leetcode */}
           {currentStep === "SET_LEETCODE" && (
             <div className="space-y-6">
               <div className="flex items-center gap-4">
@@ -243,7 +233,7 @@ export function OnboardingWizard({ initialStep, githubConnected }: Props) {
             </div>
           )}
 
-          {/* STEP 3 — Resume Upload (UI stub only) */}
+          {/* step 3: resume */}
           {currentStep === "UPLOAD_RESUME" && (
             <div className="space-y-6">
               <div className="flex items-center gap-4">
