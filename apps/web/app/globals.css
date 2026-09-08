@@ -179,6 +179,15 @@
   }
   html {
     color-scheme: dark;
+    scroll-padding-top: 6rem;
+  }
+
+  /* Target sections account for fixed navbar height and spacing */
+  #features,
+  #intelligence-engine,
+  #benchmarks,
+  #interactive-telemetry {
+    scroll-margin-top: 6.5rem;
   }
   body {
     background-color: #13131b;

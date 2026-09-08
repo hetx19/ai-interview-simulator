@@ -1,9 +1,14 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DevMetricLogo } from "@/components/ui/DevMetricLogo";
+import {
+  scrollToTarget,
+  scrollToTop,
+  stopCurrentScrollAnimation,
+} from "@/lib/smoothScroll";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -42,75 +47,84 @@ export default function LandingPage() {
   };
 
   // calculate readiness from input scores
-  const { compositeScore, tier, tierColor, probability, compRange, checks, ringOffset } =
-    useMemo(() => {
-      const gitScore = Math.min(100, (commits / 1500) * 100);
-      const leetScore = Math.min(100, (leetcodeSolved / 400) * 100);
-      const composite = Math.round(gitScore * 0.35 + leetScore * 0.45 + atsScore * 0.2);
+  const {
+    compositeScore,
+    tier,
+    tierColor,
+    probability,
+    compRange,
+    checks,
+    ringOffset,
+  } = useMemo(() => {
+    const gitScore = Math.min(100, (commits / 1500) * 100);
+    const leetScore = Math.min(100, (leetcodeSolved / 400) * 100);
+    const composite = Math.round(
+      gitScore * 0.35 + leetScore * 0.45 + atsScore * 0.2,
+    );
 
-      // circle circumference for r=52
-      const circumference = 326;
-      const offset = circumference - (composite / 100) * circumference;
+    // circle circumference for r=52
+    const circumference = 326;
+    const offset = circumference - (composite / 100) * circumference;
 
-      if (composite >= 85) {
-        return {
-          compositeScore: composite,
-          tier: "STAFF / PRINCIPAL (L6+)",
-          tierColor: "text-secondary",
-          probability: "94% Interview Pass Probability",
-          compRange: "Predicted offer range: $420k – $560k TC",
-          checks: {
-            leet: "Algorithms: Deep System & Hard Mastery",
-            git: "Commit Velocity: Staff Tier Contributor",
-            ats: "Resume ATS: Elite Google X-Y-Z Resonance",
-          },
-          ringOffset: offset,
-        };
-      }
-      if (composite >= 70) {
-        return {
-          compositeScore: composite,
-          tier: "SENIOR ENGINEER (L5)",
-          tierColor: "text-primary-container",
-          probability: "84% Interview Pass Probability",
-          compRange: "Predicted offer range: $290k – $380k TC",
-          checks: {
-            leet: "Algorithms: Mid/Hard Competency Solid",
-            git: "Commit Velocity: Consistent High Output",
-            ats: "Resume ATS: Passes Standard Screening",
-          },
-          ringOffset: offset,
-        };
-      }
-      if (composite >= 50) {
-        return {
-          compositeScore: composite,
-          tier: "MID-LEVEL SWE (L4)",
-          tierColor: "text-tertiary-container",
-          probability: "62% Interview Pass Probability",
-          compRange: "Predicted offer range: $180k – $240k TC",
-          checks: {
-            leet: "Algorithms: Requires Graph & DP Polish",
-            git: "Commit Velocity: Moderate Frequency",
-            ats: "Resume ATS: Needs Bullet Point Rewrites",
-          },
-          ringOffset: offset,
-        };
-      }
+    if (composite >= 85) {
       return {
         compositeScore: composite,
-        tier: "ASSOCIATE / FOUNDATIONAL",
-        tierColor: "text-error",
-        probability: "38% Interview Pass Probability",
-        compRange: "Target Action: Complete 60-day Roadmap",
+        tier: "STAFF / PRINCIPAL (L6+)",
+        tierColor: "text-secondary",
+        probability: "94% Interview Pass Probability",
+        compRange: "Predicted offer range: $420k – $560k TC",
         checks: {
-          leet: "Algorithms: Focus on Core Fundamentals",
-          git: "Commit Velocity: Increase PR Cadence",
-          ats: "Resume ATS: High risk of automated rejection",
+          leet: "Algorithms: Deep System & Hard Mastery",
+          git: "Commit Velocity: Staff Tier Contributor",
+          ats: "Resume ATS: Elite Google X-Y-Z Resonance",
         },
         ringOffset: offset,
       };
-    }, [commits, leetcodeSolved, atsScore]);
+    }
+    if (composite >= 70) {
+      return {
+        compositeScore: composite,
+        tier: "SENIOR ENGINEER (L5)",
+        tierColor: "text-primary-container",
+        probability: "84% Interview Pass Probability",
+        compRange: "Predicted offer range: $290k – $380k TC",
+        checks: {
+          leet: "Algorithms: Mid/Hard Competency Solid",
+          git: "Commit Velocity: Consistent High Output",
+          ats: "Resume ATS: Passes Standard Screening",
+        },
+        ringOffset: offset,
+      };
+    }
+    if (composite >= 50) {
+      return {
+        compositeScore: composite,
+        tier: "MID-LEVEL SWE (L4)",
+        tierColor: "text-tertiary-container",
+        probability: "62% Interview Pass Probability",
+        compRange: "Predicted offer range: $180k – $240k TC",
+        checks: {
+          leet: "Algorithms: Requires Graph & DP Polish",
+          git: "Commit Velocity: Moderate Frequency",
+          ats: "Resume ATS: Needs Bullet Point Rewrites",
+        },
+        ringOffset: offset,
+      };
+    }
+    return {
+      compositeScore: composite,
+      tier: "ASSOCIATE / FOUNDATIONAL",
+      tierColor: "text-error",
+      probability: "38% Interview Pass Probability",
+      compRange: "Target Action: Complete 60-day Roadmap",
+      checks: {
+        leet: "Algorithms: Focus on Core Fundamentals",
+        git: "Commit Velocity: Increase PR Cadence",
+        ats: "Resume ATS: High risk of automated rejection",
+      },
+      ringOffset: offset,
+    };
+  }, [commits, leetcodeSolved, atsScore]);
 
   const handleQuickEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +135,45 @@ export default function LandingPage() {
     }
   };
 
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    targetId: string,
+  ) => {
+    e.preventDefault();
+    if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+    scrollToTarget(targetId);
+  };
+
+  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+    scrollToTop();
+  };
+
+  // Smoothly position to initial URL hash once page mounts
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash) {
+      const targetId = window.location.hash.replace("#", "");
+      if (targetId) {
+        const timer = setTimeout(() => {
+          scrollToTarget(targetId, { updateHash: false });
+        }, 150);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
+
+  // Cancel any running scroll animation on unmount
+  useEffect(() => {
+    return () => {
+      stopCurrentScrollAnimation();
+    };
+  }, []);
+
   return (
     <div className="bg-background text-on-surface font-body-md text-body-md min-h-screen relative overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
       {/* navbar */}
@@ -129,8 +182,15 @@ export default function LandingPage() {
           <div className="h-16 w-full pointer-events-auto rounded-full bg-surface-container/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.45)] px-space-base flex items-center justify-between border border-outline-variant/20">
             {/* logo */}
             <div className="flex items-center gap-space-md">
-              <Link href="/" className="flex items-center gap-space-sm focus:outline-none group">
-                <DevMetricLogo size={32} className="h-8 w-auto object-contain" />
+              <Link
+                href="/"
+                onClick={handleLogoClick}
+                className="flex items-center gap-space-sm focus:outline-none group cursor-pointer"
+              >
+                <DevMetricLogo
+                  size={32}
+                  className="h-8 w-auto object-contain"
+                />
                 <span className="font-headline-sm text-headline-sm text-on-surface tracking-tight font-semibold group-hover:text-white transition-colors">
                   DevMetric
                 </span>
@@ -141,25 +201,29 @@ export default function LandingPage() {
             <nav className="hidden lg:flex items-center gap-space-xs px-space-sm py-space-2xs rounded-full bg-surface-container-low/70">
               <a
                 href="#features"
-                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm"
+                onClick={(e) => handleNavClick(e, "features")}
+                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm cursor-pointer"
               >
                 Features
               </a>
               <a
-                href="#intelligence-engine"
-                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm"
-              >
-                Intelligence Engine
-              </a>
-              <a
                 href="#benchmarks"
-                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm"
+                onClick={(e) => handleNavClick(e, "benchmarks")}
+                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm cursor-pointer"
               >
                 Benchmarks
               </a>
               <a
+                href="#intelligence-engine"
+                onClick={(e) => handleNavClick(e, "intelligence-engine")}
+                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm cursor-pointer"
+              >
+                Intelligence Engine
+              </a>
+              <a
                 href="#interactive-telemetry"
-                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm"
+                onClick={(e) => handleNavClick(e, "interactive-telemetry")}
+                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm cursor-pointer"
               >
                 Simulator
               </a>
@@ -180,7 +244,9 @@ export default function LandingPage() {
                 Get Started Free
               </Link>
               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
+                <span className="material-symbols-outlined text-on-primary text-[18px]">
+                  person
+                </span>
               </div>
 
               {/* mobile menu button */}
@@ -202,29 +268,29 @@ export default function LandingPage() {
             <div className="lg:hidden mt-2 pointer-events-auto rounded-2xl bg-surface-container-low/95 border border-outline-variant/30 backdrop-blur-xl p-4 shadow-2xl flex flex-col space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
               <a
                 href="#features"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2 text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition"
+                onClick={(e) => handleNavClick(e, "features")}
+                className="px-4 py-2 text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition cursor-pointer"
               >
                 Features
               </a>
               <a
                 href="#intelligence-engine"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2 text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition"
+                onClick={(e) => handleNavClick(e, "intelligence-engine")}
+                className="px-4 py-2 text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition cursor-pointer"
               >
                 Intelligence Engine
               </a>
               <a
                 href="#benchmarks"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2 text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition"
+                onClick={(e) => handleNavClick(e, "benchmarks")}
+                className="px-4 py-2 text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition cursor-pointer"
               >
                 Benchmarks
               </a>
               <a
                 href="#interactive-telemetry"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2 text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition"
+                onClick={(e) => handleNavClick(e, "interactive-telemetry")}
+                className="px-4 py-2 text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition cursor-pointer"
               >
                 Simulator
               </a>
@@ -262,6 +328,7 @@ export default function LandingPage() {
                 {/* live status pill */}
                 <a
                   href="#benchmarks"
+                  onClick={(e) => handleNavClick(e, "benchmarks")}
                   className="inline-flex items-center gap-space-sm px-space-md py-space-xs rounded-full bg-surface-container/90 shadow-md backdrop-blur-xl mb-space-lg group cursor-pointer transition-all hover:bg-surface-container-high border border-outline-variant/30"
                 >
                   <div className="flex items-center gap-space-2xs">
@@ -289,8 +356,9 @@ export default function LandingPage() {
 
                 {/* hero subtitle */}
                 <p className="mt-space-lg font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
-                  Connect your GitHub, analyze your LeetCode, screen your resume, and conduct AI voice
-                  mock interviews — all in one unified intelligence telemetry dashboard.
+                  Connect your GitHub, analyze your LeetCode, screen your
+                  resume, and conduct AI voice mock interviews — all in one
+                  unified intelligence telemetry dashboard.
                 </p>
 
                 {/* hero cta */}
@@ -300,11 +368,14 @@ export default function LandingPage() {
                     className="w-full sm:w-auto px-space-xl py-space-md rounded-full bg-primary-container text-on-primary font-title-md text-title-md font-semibold flex items-center justify-center gap-space-sm shadow-[0_0_24px_rgba(192,193,255,0.45)] hover:shadow-[0_0_36px_rgba(192,193,255,0.7)] hover:bg-primary-fixed-dim transition-all active:scale-[0.98]"
                   >
                     <span>Start Preparing Free</span>
-                    <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                    <span className="material-symbols-outlined text-[20px]">
+                      arrow_forward
+                    </span>
                   </Link>
                   <a
                     href="#interactive-telemetry"
-                    className="w-full sm:w-auto px-space-xl py-space-md rounded-full bg-surface-container/90 text-on-surface hover:text-primary-container font-title-md text-title-md font-medium flex items-center justify-center gap-space-sm backdrop-blur-xl shadow-md hover:bg-surface-container-high transition-all border border-outline-variant/30"
+                    onClick={(e) => handleNavClick(e, "interactive-telemetry")}
+                    className="w-full sm:w-auto px-space-xl py-space-md rounded-full bg-surface-container/90 text-on-surface hover:text-primary-container font-title-md text-title-md font-medium flex items-center justify-center gap-space-sm backdrop-blur-xl shadow-md hover:bg-surface-container-high transition-all border border-outline-variant/30 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-secondary text-[20px]">
                       play_circle
@@ -408,7 +479,10 @@ export default function LandingPage() {
                               strokeDashoffset="50"
                               strokeLinecap="round"
                               strokeWidth="9"
-                              style={{ filter: "drop-shadow(0 0 10px rgba(192, 193, 255, 0.6))" }}
+                              style={{
+                                filter:
+                                  "drop-shadow(0 0 10px rgba(192, 193, 255, 0.6))",
+                              }}
                             />
                             <circle
                               className="text-secondary"
@@ -421,7 +495,10 @@ export default function LandingPage() {
                               strokeDashoffset="190"
                               strokeLinecap="round"
                               strokeWidth="9"
-                              style={{ filter: "drop-shadow(0 0 8px rgba(107, 222, 128, 0.7))" }}
+                              style={{
+                                filter:
+                                  "drop-shadow(0 0 8px rgba(107, 222, 128, 0.7))",
+                              }}
                             />
                           </svg>
                           <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
@@ -444,7 +521,9 @@ export default function LandingPage() {
                       {/* metrics breakdown */}
                       <div className="space-y-space-xs pt-space-xs">
                         <div className="flex justify-between items-center text-label-md font-label-md">
-                          <span className="text-on-surface-variant">Algorithm &amp; DP</span>
+                          <span className="text-on-surface-variant">
+                            Algorithm &amp; DP
+                          </span>
                           <span className="text-on-surface font-semibold font-mono text-secondary">
                             91 / 100
                           </span>
@@ -454,7 +533,9 @@ export default function LandingPage() {
                         </div>
 
                         <div className="flex justify-between items-center text-label-md font-label-md pt-1">
-                          <span className="text-on-surface-variant">System Architecture</span>
+                          <span className="text-on-surface-variant">
+                            System Architecture
+                          </span>
                           <span className="text-on-surface font-semibold font-mono text-primary-container">
                             82 / 100
                           </span>
@@ -464,7 +545,9 @@ export default function LandingPage() {
                         </div>
 
                         <div className="flex justify-between items-center text-label-md font-label-md pt-1">
-                          <span className="text-on-surface-variant">ATS Signal Resonance</span>
+                          <span className="text-on-surface-variant">
+                            ATS Signal Resonance
+                          </span>
                           <span className="text-on-surface font-semibold font-mono text-tertiary-container">
                             88 / 100
                           </span>
@@ -494,7 +577,10 @@ export default function LandingPage() {
                         </div>
                         {/* radar svg */}
                         <div className="w-full h-44 flex items-center justify-center relative">
-                          <svg className="w-full h-full max-h-40 overflow-visible" viewBox="0 0 200 180">
+                          <svg
+                            className="w-full h-full max-h-40 overflow-visible"
+                            viewBox="0 0 200 180"
+                          >
                             {/* concentric grid polygons */}
                             <polygon
                               className="text-surface-variant"
@@ -524,7 +610,10 @@ export default function LandingPage() {
                               points="100,18 170,58 150,126 100,165 30,128 40,60"
                               stroke="#c0c1ff"
                               strokeWidth="2"
-                              style={{ filter: "drop-shadow(0 0 8px rgba(192,193,255,0.4))" }}
+                              style={{
+                                filter:
+                                  "drop-shadow(0 0 8px rgba(192,193,255,0.4))",
+                              }}
                             />
                             {/* target benchmark polygon */}
                             <polygon
@@ -653,9 +742,13 @@ export default function LandingPage() {
                           <span className="w-2 h-2 rounded-full bg-secondary animate-ping" />
                         </div>
                         <div className="p-space-xs rounded bg-surface-container-lowest/80 my-space-xs font-mono text-[11px] text-on-surface-variant leading-tight space-y-1.5 border border-outline-variant/20">
-                          <div className="text-outline">&gt; AI: &quot;Explain LRU cache eviction complexity.&quot;</div>
+                          <div className="text-outline">
+                            &gt; AI: &quot;Explain LRU cache eviction
+                            complexity.&quot;
+                          </div>
                           <div className="text-primary-container">
-                            &gt; Candidate: &quot;O(1) using Doubly-Linked List + Map...&quot;
+                            &gt; Candidate: &quot;O(1) using Doubly-Linked List
+                            + Map...&quot;
                           </div>
                           <div className="text-secondary font-medium">
                             &gt; Signal: High clarity, precise taxonomy.
@@ -709,7 +802,8 @@ export default function LandingPage() {
                             <span>Next Milestone</span>
                           </div>
                           <p className="text-on-surface-variant text-[11px] mt-1 leading-snug">
-                            Complete 3 Hard Graph Contests to cross Meta E6 readiness boundary.
+                            Complete 3 Hard Graph Contests to cross Meta E6
+                            readiness boundary.
                           </p>
                         </div>
                       </div>
@@ -719,7 +813,10 @@ export default function LandingPage() {
               </div>
 
               {/* social proof banner */}
-              <div className="mt-space-2xl max-w-5xl mx-auto text-center" id="benchmarks">
+              <div
+                className="mt-space-2xl max-w-5xl mx-auto text-center scroll-mt-28"
+                id="benchmarks"
+              >
                 <p className="font-label-md text-label-md uppercase tracking-widest text-outline">
                   Calibrated against top engineering benchmarks
                 </p>
@@ -760,7 +857,10 @@ export default function LandingPage() {
           </div>
 
           {/* feature pillars */}
-          <section className="w-full bg-surface-container-lowest/60 py-space-3xl relative" id="features">
+          <section
+            className="w-full bg-surface-container-lowest/60 py-space-3xl relative scroll-mt-24"
+            id="features"
+          >
             <div className="max-w-container-max mx-auto px-gutter-mobile lg:px-gutter-desktop">
               {/* section header */}
               <div className="max-w-3xl mb-space-2xl">
@@ -769,23 +869,31 @@ export default function LandingPage() {
                 </span>
                 <h2 className="font-display-lg text-headline-lg lg:text-display-lg text-on-surface font-semibold mt-space-sm">
                   Four Core Engines. <br className="hidden sm:inline" />
-                  <span className="text-primary-container">Total Preparation Precision.</span>
+                  <span className="text-primary-container">
+                    Total Preparation Precision.
+                  </span>
                 </h2>
                 <p className="font-body-lg text-body-lg text-on-surface-variant mt-space-sm">
-                  Traditional prep is fragmented across spreadsheets and isolated practice tabs.
-                  DevMetric synthesizes your genuine code repositories, algorithms, resume signal,
-                  and live verbal performance into a single source of truth.
+                  Traditional prep is fragmented across spreadsheets and
+                  isolated practice tabs. DevMetric synthesizes your genuine
+                  code repositories, algorithms, resume signal, and live verbal
+                  performance into a single source of truth.
                 </p>
               </div>
 
               {/* bento grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg" id="intelligence-engine">
+              <div
+                className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg scroll-mt-28"
+                id="intelligence-engine"
+              >
                 {/* pillar 1: github */}
                 <div className="lg:col-span-7 rounded-2xl bg-surface-container-low/90 backdrop-blur-xl p-space-xl shadow-md flex flex-col justify-between group hover:bg-surface-container transition-all border border-outline-variant/20">
                   <div>
                     <div className="flex items-center justify-between mb-space-base">
                       <div className="w-12 h-12 rounded-xl bg-primary-container/20 flex items-center justify-center text-primary-container shadow-[0_0_16px_rgba(192,193,255,0.3)]">
-                        <span className="material-symbols-outlined text-[28px]">folder_code</span>
+                        <span className="material-symbols-outlined text-[28px]">
+                          folder_code
+                        </span>
                       </div>
                       <span className="font-label-sm text-label-sm font-semibold uppercase px-space-sm py-1 rounded-full bg-primary-container/10 text-primary-container font-mono">
                         Engine 01
@@ -795,9 +903,9 @@ export default function LandingPage() {
                       GitHub Commit &amp; PR Analytics
                     </h3>
                     <p className="font-body-md text-body-md text-on-surface-variant mt-space-xs">
-                      Automated static analysis of your genuine pull requests, commit consistency
-                      velocity, architecture modularity, and production-grade code reviews across
-                      distributed teams.
+                      Automated static analysis of your genuine pull requests,
+                      commit consistency velocity, architecture modularity, and
+                      production-grade code reviews across distributed teams.
                     </p>
 
                     {/* heatmap & languages preview */}
@@ -820,7 +928,10 @@ export default function LandingPage() {
                           [0.7, 1, 1, 0.8],
                           [0, 0.5, 0.9, 1],
                         ].map((col, cIdx) => (
-                          <div key={cIdx} className="grid grid-rows-4 gap-1.5 flex-shrink-0">
+                          <div
+                            key={cIdx}
+                            className="grid grid-rows-4 gap-1.5 flex-shrink-0"
+                          >
                             {col.map((val, rIdx) => (
                               <div
                                 key={rIdx}
@@ -828,8 +939,8 @@ export default function LandingPage() {
                                   val === 0
                                     ? "bg-surface-container-high"
                                     : val > 0.7
-                                    ? "bg-secondary"
-                                    : "bg-secondary/50"
+                                      ? "bg-secondary"
+                                      : "bg-secondary/50"
                                 }`}
                               />
                             ))}
@@ -870,7 +981,9 @@ export default function LandingPage() {
                   <div>
                     <div className="flex items-center justify-between mb-space-base">
                       <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center text-secondary shadow-[0_0_16px_rgba(107,222,128,0.3)]">
-                        <span className="material-symbols-outlined text-[28px]">terminal</span>
+                        <span className="material-symbols-outlined text-[28px]">
+                          terminal
+                        </span>
                       </div>
                       <span className="font-label-sm text-label-sm font-semibold uppercase px-space-sm py-1 rounded-full bg-secondary/10 text-secondary font-mono">
                         Engine 02
@@ -880,16 +993,21 @@ export default function LandingPage() {
                       LeetCode Contest &amp; Radar Tracker
                     </h3>
                     <p className="font-body-md text-body-md text-on-surface-variant mt-space-xs">
-                      Deep diagnostic breakdown by Dynamic Programming, Monotonic Stacks, and Graph
-                      Algorithms to expose blind spots before interviews.
+                      Deep diagnostic breakdown by Dynamic Programming,
+                      Monotonic Stacks, and Graph Algorithms to expose blind
+                      spots before interviews.
                     </p>
 
                     {/* topic mastery bars */}
                     <div className="mt-space-lg p-space-base rounded-xl bg-surface-container-lowest/80 space-y-space-sm border border-outline-variant/20">
                       <div>
                         <div className="flex justify-between text-label-sm font-mono mb-1">
-                          <span className="text-on-surface">Dynamic Programming</span>
-                          <span className="text-secondary font-semibold">94% (Mastery)</span>
+                          <span className="text-on-surface">
+                            Dynamic Programming
+                          </span>
+                          <span className="text-secondary font-semibold">
+                            94% (Mastery)
+                          </span>
                         </div>
                         <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
                           <div className="bg-secondary h-full rounded-full w-[94%] shadow-[0_0_8px_#6bde80]" />
@@ -897,8 +1015,12 @@ export default function LandingPage() {
                       </div>
                       <div>
                         <div className="flex justify-between text-label-sm font-mono mb-1">
-                          <span className="text-on-surface">Graph Theory &amp; Dijkstra</span>
-                          <span className="text-primary-container font-semibold">86% (Strong)</span>
+                          <span className="text-on-surface">
+                            Graph Theory &amp; Dijkstra
+                          </span>
+                          <span className="text-primary-container font-semibold">
+                            86% (Strong)
+                          </span>
                         </div>
                         <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
                           <div className="bg-primary-container h-full rounded-full w-[86%] shadow-[0_0_8px_#c0c1ff]" />
@@ -906,7 +1028,9 @@ export default function LandingPage() {
                       </div>
                       <div>
                         <div className="flex justify-between text-label-sm font-mono mb-1">
-                          <span className="text-on-surface">Concurrency &amp; Locks</span>
+                          <span className="text-on-surface">
+                            Concurrency &amp; Locks
+                          </span>
                           <span className="text-tertiary-container font-semibold">
                             62% (Target Action)
                           </span>
@@ -920,7 +1044,9 @@ export default function LandingPage() {
                   <div className="mt-space-lg flex items-center justify-between pt-space-md border-t border-outline-variant/20">
                     <span className="text-label-md font-label-md text-on-surface-variant font-mono">
                       Rating Benchmark:{" "}
-                      <strong className="text-on-surface">2,184 (Top 1.2%)</strong>
+                      <strong className="text-on-surface">
+                        2,184 (Top 1.2%)
+                      </strong>
                     </span>
                     <span className="material-symbols-outlined text-secondary group-hover:translate-x-1 transition-transform">
                       arrow_forward
@@ -933,7 +1059,9 @@ export default function LandingPage() {
                   <div>
                     <div className="flex items-center justify-between mb-space-base">
                       <div className="w-12 h-12 rounded-xl bg-tertiary-container/20 flex items-center justify-center text-tertiary-fixed-dim shadow-[0_0_16px_rgba(255,184,103,0.3)]">
-                        <span className="material-symbols-outlined text-[28px]">description</span>
+                        <span className="material-symbols-outlined text-[28px]">
+                          description
+                        </span>
                       </div>
                       <span className="font-label-sm text-label-sm font-semibold uppercase px-space-sm py-1 rounded-full bg-tertiary-container/15 text-tertiary-container font-mono">
                         Engine 03
@@ -943,8 +1071,9 @@ export default function LandingPage() {
                       AI Resume ATS X-Y-Z Scanner
                     </h3>
                     <p className="font-body-md text-body-md text-on-surface-variant mt-space-xs">
-                      Rewrites engineering accomplishments into Google’s standard &quot;Accomplished
-                      [X], measured by [Y], by doing [Z]&quot; with live ATS keyword gap injection.
+                      Rewrites engineering accomplishments into Google’s
+                      standard &quot;Accomplished [X], measured by [Y], by doing
+                      [Z]&quot; with live ATS keyword gap injection.
                     </p>
 
                     {/* diff rewriter box */}
@@ -953,12 +1082,15 @@ export default function LandingPage() {
                         - Built microservices to speed up our checkout process.
                       </div>
                       <div className="p-space-xs rounded bg-secondary/15 text-secondary text-[11px] font-mono">
-                        + Optimized checkout pipeline throughput by 38% (reducing p99 latency to
-                        120ms) by re-architecting payment RPCs with gRPC connection pooling.
+                        + Optimized checkout pipeline throughput by 38%
+                        (reducing p99 latency to 120ms) by re-architecting
+                        payment RPCs with gRPC connection pooling.
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-outline font-mono pt-1">
                         <span>Signal Score: 52 → 96</span>
-                        <span className="text-secondary font-semibold">+44 pts ATS Boost</span>
+                        <span className="text-secondary font-semibold">
+                          +44 pts ATS Boost
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -992,9 +1124,9 @@ export default function LandingPage() {
                       Voice Mock Interviews &amp; Monaco IDE
                     </h3>
                     <p className="font-body-md text-body-md text-on-surface-variant mt-space-xs">
-                      Natural bidirectional voice synthesis with real-time speech-to-code feedback,
-                      dynamic edge test generation via Judge0, and conversational behavioral pacing
-                      metrics.
+                      Natural bidirectional voice synthesis with real-time
+                      speech-to-code feedback, dynamic edge test generation via
+                      Judge0, and conversational behavioral pacing metrics.
                     </p>
 
                     {/* ide preview */}
@@ -1012,15 +1144,30 @@ export default function LandingPage() {
                         <span className="text-primary-container">class</span>{" "}
                         <span className="text-secondary">LRUCache</span> &#123;
                         <br />
-                        &nbsp;&nbsp;<span className="text-primary-container">unordered_map</span>&lt;
-                        <span className="text-primary-container">int</span>,{" "}
-                        <span className="text-primary-container">list</span>&lt;pair&lt;
-                        <span className="text-primary-container">int</span>,{" "}
-                        <span className="text-primary-container">int</span>&gt;&gt;::iterator&gt; cacheMap;
+                        &nbsp;&nbsp;
+                        <span className="text-primary-container">
+                          unordered_map
+                        </span>
+                        &lt;
+                        <span className="text-primary-container">
+                          int
+                        </span>,{" "}
+                        <span className="text-primary-container">list</span>
+                        &lt;pair&lt;
+                        <span className="text-primary-container">
+                          int
+                        </span>,{" "}
+                        <span className="text-primary-container">int</span>
+                        &gt;&gt;::iterator&gt; cacheMap;
                         <br />
-                        &nbsp;&nbsp;<span className="text-primary-container">list</span>&lt;pair&lt;
-                        <span className="text-primary-container">int</span>,{" "}
-                        <span className="text-primary-container">int</span>&gt;&gt; dll;
+                        &nbsp;&nbsp;
+                        <span className="text-primary-container">list</span>
+                        &lt;pair&lt;
+                        <span className="text-primary-container">
+                          int
+                        </span>,{" "}
+                        <span className="text-primary-container">int</span>
+                        &gt;&gt; dll;
                         <br />
                         &nbsp;&nbsp;
                         <span className="text-outline-variant">
@@ -1051,7 +1198,7 @@ export default function LandingPage() {
 
           {/* readiness calculator */}
           <section
-            className="max-w-container-max mx-auto px-gutter-mobile lg:px-gutter-desktop py-space-3xl w-full"
+            className="max-w-container-max mx-auto px-gutter-mobile lg:px-gutter-desktop py-space-3xl w-full scroll-mt-24"
             id="interactive-telemetry"
           >
             <div className="rounded-3xl bg-surface-container/90 backdrop-blur-2xl p-space-xl lg:p-space-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] relative overflow-hidden border border-outline-variant/20">
@@ -1069,8 +1216,9 @@ export default function LandingPage() {
                       Simulate Your Hiring Readiness Index
                     </h2>
                     <p className="font-body-md text-body-md text-on-surface-variant mt-space-xs">
-                      Adjust your profile vectors below to calculate your estimated FAANG offer
-                      probability and recommended compensation level in real-time.
+                      Adjust your profile vectors below to calculate your
+                      estimated FAANG offer probability and recommended
+                      compensation level in real-time.
                     </p>
                   </div>
 
@@ -1088,7 +1236,10 @@ export default function LandingPage() {
                           </span>
                           Annual GitHub Commits &amp; Merges
                         </label>
-                        <span className="font-mono font-semibold text-primary-container text-title-md" id="calc-commits-val">
+                        <span
+                          className="font-mono font-semibold text-primary-container text-title-md"
+                          id="calc-commits-val"
+                        >
                           {commits.toLocaleString()} commits
                         </span>
                       </div>
@@ -1121,7 +1272,10 @@ export default function LandingPage() {
                           </span>
                           Algorithms Solved (Medium &amp; Hard)
                         </label>
-                        <span className="font-mono font-semibold text-secondary text-title-md" id="calc-leetcode-val">
+                        <span
+                          className="font-mono font-semibold text-secondary text-title-md"
+                          id="calc-leetcode-val"
+                        >
                           {leetcodeSolved.toLocaleString()} solved
                         </span>
                       </div>
@@ -1132,7 +1286,9 @@ export default function LandingPage() {
                         max="750"
                         step="5"
                         value={leetcodeSolved}
-                        onChange={(e) => setLeetcodeSolved(Number(e.target.value))}
+                        onChange={(e) =>
+                          setLeetcodeSolved(Number(e.target.value))
+                        }
                         className="w-full h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-secondary focus:outline-none"
                       />
                       <div className="flex justify-between text-label-sm font-label-sm text-outline mt-1 font-mono">
@@ -1154,7 +1310,10 @@ export default function LandingPage() {
                           </span>
                           Resume ATS Impact Rating
                         </label>
-                        <span className="font-mono font-semibold text-tertiary-container text-title-md" id="calc-ats-val">
+                        <span
+                          className="font-mono font-semibold text-tertiary-container text-title-md"
+                          id="calc-ats-val"
+                        >
                           {atsScore}% Signal
                         </span>
                       </div>
@@ -1183,7 +1342,10 @@ export default function LandingPage() {
                     <span className="font-label-sm font-label-sm text-outline uppercase font-mono">
                       Dynamic Evaluation Engine
                     </span>
-                    <span className={`font-mono text-label-sm font-bold ${tierColor}`} id="readiness-tier">
+                    <span
+                      className={`font-mono text-label-sm font-bold ${tierColor}`}
+                      id="readiness-tier"
+                    >
                       {tier}
                     </span>
                   </div>
@@ -1217,7 +1379,8 @@ export default function LandingPage() {
                           strokeLinecap="round"
                           strokeWidth="8"
                           style={{
-                            filter: "drop-shadow(0 0 14px rgba(107, 222, 128, 0.6))",
+                            filter:
+                              "drop-shadow(0 0 14px rgba(107, 222, 128, 0.6))",
                             transition: "stroke-dashoffset 300ms ease-out",
                           }}
                         />
@@ -1236,10 +1399,16 @@ export default function LandingPage() {
                     </div>
 
                     <div className="mt-space-md space-y-1">
-                      <div className="text-headline-sm font-headline-sm font-semibold text-secondary" id="calc-prob-text">
+                      <div
+                        className="text-headline-sm font-headline-sm font-semibold text-secondary"
+                        id="calc-prob-text"
+                      >
                         {probability}
                       </div>
-                      <p className="text-body-sm font-body-sm text-on-surface-variant" id="calc-rec-text">
+                      <p
+                        className="text-body-sm font-body-sm text-on-surface-variant"
+                        id="calc-rec-text"
+                      >
                         {compRange}
                       </p>
                     </div>
@@ -1291,8 +1460,8 @@ export default function LandingPage() {
                 </h2>
               </div>
               <p className="text-body-md font-body-md text-on-surface-variant max-w-md">
-                DevMetric candidates consistently jump senior tiers by isolating exact weaknesses in
-                their codebase and interview delivery.
+                DevMetric candidates consistently jump senior tiers by isolating
+                exact weaknesses in their codebase and interview delivery.
               </p>
             </div>
 
@@ -1310,9 +1479,10 @@ export default function LandingPage() {
                     </span>
                   </div>
                   <p className="text-body-md font-body-md text-on-surface-variant italic leading-relaxed">
-                    &ldquo;The voice telemetry co-pilot pinpointed my exact communication flaw: I was
-                    over-explaining trivial helper code while rushing high-level distributed lock
-                    tradeoffs. Correcting that landed my L5 offer at Stripe.&rdquo;
+                    &ldquo;The voice telemetry co-pilot pinpointed my exact
+                    communication flaw: I was over-explaining trivial helper
+                    code while rushing high-level distributed lock tradeoffs.
+                    Correcting that landed my L5 offer at Stripe.&rdquo;
                   </p>
                 </div>
                 <div className="flex items-center gap-space-md pt-space-lg mt-space-md border-t border-surface-variant/40">
@@ -1342,9 +1512,11 @@ export default function LandingPage() {
                     </span>
                   </div>
                   <p className="text-body-md font-body-md text-on-surface-variant italic leading-relaxed">
-                    &ldquo;My GitHub analysis identified that while my microservice code was clean, my
-                    commit sizing and concurrency patterns lacked Staff-level traceability. DevMetric’s
-                    automated PR coach elevated my entire portfolio in 4 weeks.&rdquo;
+                    &ldquo;My GitHub analysis identified that while my
+                    microservice code was clean, my commit sizing and
+                    concurrency patterns lacked Staff-level traceability.
+                    DevMetric’s automated PR coach elevated my entire portfolio
+                    in 4 weeks.&rdquo;
                   </p>
                 </div>
                 <div className="flex items-center gap-space-md pt-space-lg mt-space-md border-t border-surface-variant/40">
@@ -1374,9 +1546,10 @@ export default function LandingPage() {
                     </span>
                   </div>
                   <p className="text-body-md font-body-md text-on-surface-variant italic leading-relaxed">
-                    &ldquo;The resume ATS scanner was the turning point. It rewrote my passive
-                    accomplishments into hard Google X-Y-Z telemetry metrics. Recruiter callbacks
-                    jumped from 10% to over 65% across FAANG within 8 days.&rdquo;
+                    &ldquo;The resume ATS scanner was the turning point. It
+                    rewrote my passive accomplishments into hard Google X-Y-Z
+                    telemetry metrics. Recruiter callbacks jumped from 10% to
+                    over 65% across FAANG within 8 days.&rdquo;
                   </p>
                 </div>
                 <div className="flex items-center gap-space-md pt-space-lg mt-space-md border-t border-surface-variant/40">
@@ -1410,8 +1583,8 @@ export default function LandingPage() {
                   Bridge the Gap Between Candidate and Staff Engineer.
                 </h2>
                 <p className="font-body-lg text-body-lg text-on-surface-variant mt-space-sm">
-                  Connect your GitHub or LeetCode in seconds. Get an immediate diagnostic readout and
-                  your tailored readiness roadmap today.
+                  Connect your GitHub or LeetCode in seconds. Get an immediate
+                  diagnostic readout and your tailored readiness roadmap today.
                 </p>
 
                 {/* email signup form */}
@@ -1420,7 +1593,9 @@ export default function LandingPage() {
                   className="mt-space-xl flex flex-col sm:flex-row items-center gap-space-xs max-w-lg mx-auto bg-surface-container-lowest/90 p-1.5 rounded-full shadow-lg border border-outline-variant/30"
                 >
                   <div className="flex items-center gap-space-xs px-space-md w-full">
-                    <span className="material-symbols-outlined text-outline text-[20px]">mail</span>
+                    <span className="material-symbols-outlined text-outline text-[20px]">
+                      mail
+                    </span>
                     <input
                       className="bg-transparent border-none text-on-surface placeholder:text-outline font-body-md text-body-md focus:outline-none w-full py-2"
                       placeholder="name@company.com or GitHub email"
@@ -1464,7 +1639,8 @@ export default function LandingPage() {
                 </div>
 
                 <div className="mt-space-md text-label-sm font-label-sm text-outline font-mono">
-                  No credit card required • Free forever tier available • SOC2 Type II Certified
+                  No credit card required • Free forever tier available • SOC2
+                  Type II Certified
                 </div>
               </div>
             </div>
@@ -1477,8 +1653,12 @@ export default function LandingPage() {
         <div className="max-w-container-max mx-auto px-gutter-mobile lg:px-gutter-desktop py-space-3xl flex flex-col md:flex-row items-center justify-between gap-space-lg text-on-surface-variant text-body-sm font-body-sm">
           <div className="flex items-center gap-space-sm">
             <DevMetricLogo size={24} className="opacity-90" />
-            <span className="font-title-md text-title-md text-on-surface font-semibold">DevMetric</span>
-            <span className="text-outline">© 2025 DevMetric Inc. All rights reserved.</span>
+            <span className="font-title-md text-title-md text-on-surface font-semibold">
+              DevMetric
+            </span>
+            <span className="text-outline">
+              © 2025 DevMetric Inc. All rights reserved.
+            </span>
           </div>
           <div className="flex items-center gap-space-lg font-mono text-body-sm">
             <Link className="hover:text-on-surface transition-colors" href="#">

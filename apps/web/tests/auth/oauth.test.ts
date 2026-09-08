@@ -6,7 +6,7 @@ import { EncryptedPrismaAdapter } from "@/server/auth/adapter";
 const TEST_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 describe("OAuth Authentication Flow & Error Handling", () => {
-  let createdUserIds: string[] = [];
+  const createdUserIds: string[] = [];
   const adapter = EncryptedPrismaAdapter(db);
 
   beforeAll(() => {

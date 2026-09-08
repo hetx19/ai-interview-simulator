@@ -4,7 +4,6 @@ import GoogleProvider from "next-auth/providers/google";
 import { db } from "@/lib/prisma";
 import { EncryptedPrismaAdapter } from "./adapter";
 import { handleAccountLinking } from "./linking";
-import { validateAndRotateSession } from "./session";
 
 const isProduction = process.env.NODE_ENV === "production";
 const SESSION_COOKIE_NAME = isProduction
@@ -94,18 +93,10 @@ export const authOptions: AuthOptions = {
       return true;
     },
 
-    // attach user id and rotate session tokens older than 24h
+    // attach user id to session
     async session({ session, user }) {
       if (session.user && user) {
         session.user.id = user.id;
-      }
-
-      const token = (session as { sessionToken?: string }).sessionToken;
-      if (token) {
-        const result = await validateAndRotateSession(token);
-        if (result.rotated) {
-          (session as { sessionToken?: string }).sessionToken = result.sessionToken;
-        }
       }
 
       return session;
@@ -113,7 +104,7 @@ export const authOptions: AuthOptions = {
   },
 
   events: {
-    async signIn({ user, account }) {
+    async signIn() {
       // hook for auth event telemetry if needed later
     },
   },

@@ -1,4 +1,4 @@
-import { authOptions, auth } from "./server/auth";
+import { auth } from "./server/auth";
 
 export {
   authOptions,

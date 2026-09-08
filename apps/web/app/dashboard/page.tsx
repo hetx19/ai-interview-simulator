@@ -1,4 +1,5 @@
 // dashboard overview page
+import Link from "next/link";
 
 // inline svg components
 
@@ -36,109 +37,10 @@ function ScoreGauge({ score }: { score: number }) {
   );
 }
 
-function MiniRingMeter({ value, color = "text-[#e1dfff]" }: { value: number; color?: string }) {
-  return (
-    <div className="relative w-16 h-16 flex items-center justify-center">
-      <svg className={`w-16 h-16 transform -rotate-90 ${color}`} viewBox="0 0 36 36">
-        <path
-          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-          fill="none" stroke="currentColor" strokeWidth="3.5"
-          className="text-[#292932] opacity-80"
-        />
-        <path
-          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-          fill="none" stroke="currentColor" strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeDasharray={`${value}, 100`}
-          style={{ transition: "stroke-dasharray 1s ease-out" }}
-        />
-      </svg>
-      <span className="absolute text-[10px] leading-[14px] font-[600] tracking-[0.06em]">{value}%</span>
-    </div>
-  );
-}
-
-// contribution heatmap demo
-const HEATMAP_DATA = [
-  [0,0.3,0.8,1,0,0.5],[1,0.6,0,0.4,1,0.8],[0.4,1,1,0.9,0,0.5],[0,0,0.6,1,0.8,1],
-  [1,1,0.4,0,0.7,1],[0.3,1,1,0.8,0,1],[1,1,0,0.5,1,1],[0.9,0,0.7,1,1,0.4],
-  [1,1,1,0,0.6,1],[0,0.4,1,1,1,0.8],[1,1,0.5,1,0,1],[0.7,0,1,1,1,0.4],
-  [1,1,1,1,0,1],[0.8,1,0,0.3,1,1],[1,1,1,1,0,0.9],[0,0.3,1,1,1,1],
-  [0.8,1,0,1,1,0.6],[1,1,1,1,0,1],[0,1,0.9,1,1,1],[1,1,1,0,1,1],
-  [1,1,1,1,0,1],[1,0.8,1,0,1,1],[1,1,0,0.9,1,1],  [0.7,1,1,1,0,1],
-  [1,1,1,1,0.5,1],[1,1,1,1,1,1],
-];
-
 const HEATMAP_CELLS = [
   1, 2, 0, 3, 2, 1, 3, 2, 0, 1, 2, 3,
   2, 3, 1, 0, 2, 3, 3, 2, 1, 2, 3, 3,
 ];
-
-function ContribHeatmap() {
-  return (
-    <svg className="w-full h-24 min-w-[300px]" viewBox="0 0 312 80">
-      <g>
-        {HEATMAP_DATA.map((col, ci) =>
-          col.map((v, ri) => (
-            <rect
-              key={`${ci}-${ri}`}
-              x={ci * 12}
-              y={ri * 11 + 4}
-              width="8"
-              height="8"
-              rx="2"
-              fill={v === 0 ? "#34343d" : "#6bde80"}
-              fillOpacity={v === 0 ? 1 : v}
-            />
-          ))
-        )}
-      </g>
-    </svg>
-  );
-}
-
-function RadarChart() {
-  const points = "120,38 182,78 182,162 120,202 58,162 58,78";
-  const benchmark = "120,52 170,86 170,154 120,188 70,154 70,86";
-  return (
-    <svg className="w-full h-full" viewBox="0 0 240 240">
-      <defs>
-        <linearGradient id="radarGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#c0c1ff" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#6bde80" stopOpacity="0.15" />
-        </linearGradient>
-      </defs>
-      {/* background grid rings */}
-      <polygon points="120,20 206,70 206,170 120,220 34,170 34,70" fill="none" stroke="#292932" strokeWidth="1" strokeDasharray="3 3" />
-      <polygon points="120,50 178,83 178,150 120,183 62,150 62,83" fill="none" stroke="#292932" strokeWidth="1" strokeDasharray="3 3" />
-      <polygon points="120,80 150,97 150,130 120,147 90,130 90,97" fill="none" stroke="#1f1f27" strokeWidth="1" />
-      {/* axes */}
-      <line x1="120" y1="20" x2="120" y2="220" stroke="#292932" strokeWidth="1" strokeDasharray="2 2" />
-      <line x1="34" y1="70" x2="206" y2="170" stroke="#292932" strokeWidth="1" strokeDasharray="2 2" />
-      <line x1="34" y1="170" x2="206" y2="70" stroke="#292932" strokeWidth="1" strokeDasharray="2 2" />
-      {/* benchmark polygon (faded target) */}
-      <polygon points={benchmark} fill="none" stroke="#c0c1ff" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.4" />
-      {/* candidate polygon */}
-      <polygon points={points} fill="url(#radarGlow)" stroke="#6bde80" strokeWidth="2" />
-      {/* vertex dots */}
-      <circle cx="120" cy="38" r="3.5" fill="#6bde80" />
-      <circle cx="182" cy="78" r="3.5" fill="#6bde80" />
-      <circle cx="182" cy="162" r="3.5" fill="#6bde80" />
-      <circle cx="120" cy="202" r="3.5" fill="#6bde80" />
-      <circle cx="58" cy="162" r="3.5" fill="#6bde80" />
-      <circle cx="58" cy="78" r="3.5" fill="#6bde80" />
-      {/* labels */}
-      <g className="text-[10px] fill-[#c7c5d0] font-[500]" textAnchor="middle">
-        <text x="120" y="14">System Arch (90)</text>
-        <text x="215" y="74">DSA (88)</text>
-        <text x="215" y="174">Comm (82)</text>
-        <text x="120" y="234">Concurrency (76)</text>
-        <text x="22" y="174">Testing (70)</text>
-        <text x="22" y="74">Speed (85)</text>
-      </g>
-    </svg>
-  );
-}
 
 // signal component cards
 const SIGNAL_COMPONENTS = [
@@ -329,36 +231,37 @@ export default function DashboardOverviewPage() {
         {/* action toolbar */}
         <div className="flex flex-wrap items-center gap-3 bg-[#1f1f27]/80 backdrop-blur-md p-3 rounded-xl shadow-lg">
           {/* primary action */}
-          <button
-            type="button"
+          <Link
+            href="/dashboard/interviews"
             className="group flex items-center gap-2 px-6 py-3 rounded-lg bg-[#c0c1ff] text-[#292b5e] text-[16px] leading-[24px] font-[500] font-bold shadow-[0_0_24px_rgba(192,193,255,0.4)] hover:shadow-[0_0_32px_rgba(192,193,255,0.65)] hover:bg-[#e1dfff] transition-all active:scale-[0.98]"
           >
             <span className="material-symbols-outlined group-hover:scale-110 transition-transform">smart_toy</span>
             <span>Start AI Mock Interview</span>
             <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
+          </Link>
           {/* secondary actions */}
-          {[
-            { icon: "sync", label: "Sync GitHub Activity" },
-            { icon: "upload_file", label: "Upload New Resume" },
-          ].map((btn) => (
-            <button
-              key={btn.label}
-              type="button"
-              className="flex items-center gap-1.5 px-3 py-3 rounded-lg bg-[#292932]/80 text-[#e4e1ed] text-[14px] leading-[22px] hover:bg-[#34343d] hover:text-[#e1dfff] transition-all active:scale-[0.98]"
-            >
-              <span className="material-symbols-outlined text-[#918f9a] text-base">{btn.icon}</span>
-              <span>{btn.label}</span>
-            </button>
-          ))}
-          <button
-            type="button"
+          <Link
+            href="/dashboard/github"
+            className="flex items-center gap-1.5 px-3 py-3 rounded-lg bg-[#292932]/80 text-[#e4e1ed] text-[14px] leading-[22px] hover:bg-[#34343d] hover:text-[#e1dfff] transition-all active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-[#918f9a] text-base">sync</span>
+            <span>Sync GitHub Activity</span>
+          </Link>
+          <Link
+            href="/dashboard/resume"
+            className="flex items-center gap-1.5 px-3 py-3 rounded-lg bg-[#292932]/80 text-[#e4e1ed] text-[14px] leading-[22px] hover:bg-[#34343d] hover:text-[#e1dfff] transition-all active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-[#918f9a] text-base">upload_file</span>
+            <span>Upload New Resume</span>
+          </Link>
+          <Link
+            href="/dashboard/hiring"
             className="flex items-center gap-1.5 px-3 py-3 rounded-lg bg-[#292932]/80 text-[#e4e1ed] text-[14px] leading-[22px] hover:bg-[#34343d] hover:text-[#e1dfff] transition-all active:scale-[0.98] sm:ml-auto"
           >
             <span className="material-symbols-outlined text-[#918f9a] text-base">public</span>
             <span>View Public Profile</span>
             <span className="material-symbols-outlined text-[#918f9a] text-xs">open_in_new</span>
-          </button>
+          </Link>
         </div>
 
         {/* analytics grid */}
@@ -416,9 +319,9 @@ export default function DashboardOverviewPage() {
 
             <div className="mt-4 pt-3 flex items-center justify-between">
               <span className="text-[12px] leading-[18px] text-[#918f9a]">Branch Health: Optimal</span>
-              <a href="#" className="text-[#6bde80] text-[12px] leading-[18px] hover:underline flex items-center gap-1">
+              <Link href="/dashboard/github" className="text-[#6bde80] text-[12px] leading-[18px] hover:underline flex items-center gap-1">
                 Full GitHub Report <span className="material-symbols-outlined text-xs">arrow_forward</span>
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -487,9 +390,9 @@ export default function DashboardOverviewPage() {
 
             <div className="mt-4 pt-3 flex items-center justify-between">
               <span className="text-[12px] leading-[18px] text-[#918f9a]">Knight Badge Eligible</span>
-              <a href="#" className="text-[#e1dfff] text-[12px] leading-[18px] hover:underline flex items-center gap-1">
+              <Link href="/dashboard/leetcode" className="text-[#e1dfff] text-[12px] leading-[18px] hover:underline flex items-center gap-1">
                 Solve Daily Problem <span className="material-symbols-outlined text-xs">arrow_forward</span>
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -553,9 +456,9 @@ export default function DashboardOverviewPage() {
 
             <div className="mt-4 pt-3 flex items-center justify-between">
               <span className="text-[12px] leading-[18px] text-[#918f9a]">Next: LRU Cache Variant</span>
-              <a href="#" className="text-[#e1dfff] text-[12px] leading-[18px] hover:underline flex items-center gap-1">
+              <Link href="/dashboard/interviews" className="text-[#e1dfff] text-[12px] leading-[18px] hover:underline flex items-center gap-1">
                 Start Session <span className="material-symbols-outlined text-xs">arrow_forward</span>
-              </a>
+              </Link>
             </div>
           </div>
 

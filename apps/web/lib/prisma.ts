@@ -58,7 +58,6 @@ function createPrismaClient(): PrismaClient {
 
 // reuse client in dev to prevent leaking connections on hmr
 declare global {
-  // eslint-disable-next-line no-var
   var __prisma: PrismaClient | undefined;
 }
 
@@ -70,6 +69,11 @@ if (process.env.NODE_ENV !== "production") {
 
 // db health check ping
 export async function checkDatabaseHealth(): Promise<boolean> {
-  await db.$queryRaw`SELECT 1`;
-  return true;
+  try {
+    await db.$queryRaw`SELECT 1`;
+    return true;
+  } catch (error) {
+    console.error("[Prisma] Database health check ping failed:", error);
+    return false;
+  }
 }

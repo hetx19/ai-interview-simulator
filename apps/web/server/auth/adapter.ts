@@ -1,6 +1,6 @@
 import type { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters";
 import type { PrismaClient } from "@prisma/client";
-import { encryptToken, decryptToken } from "./encryption";
+import { encryptToken } from "./encryption";
 import { randomBytes } from "crypto";
 
 // custom next-auth adapter that keeps oauth tokens encrypted in the db
