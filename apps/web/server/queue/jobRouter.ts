@@ -1,5 +1,9 @@
 import { JobType, QStashMessage } from './jobTypes';
 import { logger } from '@/server/logging/logger';
+import { getDecryptedAccessToken } from '@/server/auth/encryption';
+import { GithubService } from '@/server/services/GithubService';
+import { invalidateByTag } from '@/server/cache/redisClient';
+import { cacheTags } from '@/lib/cache/cacheKeys';
 
 export async function dispatchJob(message: QStashMessage<any>): Promise<void> {
   logger.info(
@@ -12,9 +16,17 @@ export async function dispatchJob(message: QStashMessage<any>): Promise<void> {
   );
 
   switch (message.type) {
-    case JobType.GITHUB_SYNC:
-      logger.debug({ payload: message.payload }, 'Github sync job received (stub)');
+    case JobType.GITHUB_SYNC: {
+      const { userId } = message.payload;
+      const token = await getDecryptedAccessToken(userId, 'github');
+      if (!token) {
+        throw new Error(`No GitHub OAuth token available for user ${userId}`);
+      }
+      const githubService = new GithubService(userId);
+      await githubService.syncProfile(token);
+      await invalidateByTag(cacheTags.user(userId));
       break;
+    }
     case JobType.LEETCODE_SYNC:
       logger.debug({ payload: message.payload }, 'Leetcode sync job received (stub)');
       break;

@@ -8,6 +8,20 @@ import { qstash } from '@/server/queue/qstashClient';
 import * as jobRouter from '@/server/queue/jobRouter';
 import { env } from '@/lib/env';
 
+const mockSyncProfile = vi.fn().mockResolvedValue({ id: 'p1', githubScore: 90 });
+vi.mock('@/server/services/GithubService', () => {
+  return {
+    GithubService: class {
+      syncProfile = mockSyncProfile;
+    },
+  };
+});
+vi.mock('@/server/auth/encryption', () => ({
+  getDecryptedAccessToken: vi.fn().mockResolvedValue('gho_test_token_123'),
+  encryptToken: vi.fn(),
+  decryptToken: vi.fn(),
+}));
+
 // Helper to sign bodies using the actual current signing key
 async function generateSignature(body: string, key = env.QSTASH_CURRENT_SIGNING_KEY): Promise<string> {
   const bodyHash = crypto.createHash('sha256').update(body).digest('base64url');
@@ -211,5 +225,17 @@ describe('QStash Queue & Webhook Verification', () => {
     expect(response.status).toBe(403);
     expect(dispatchSpy).not.toHaveBeenCalled();
     dispatchSpy.mockRestore();
+  });
+
+  it('19. dispatchJob executes GITHUB_SYNC and invalidates user cache tags', async () => {
+    await jobRouter.dispatchJob({
+      type: JobType.GITHUB_SYNC,
+      payload: { userId: 'u_sync_test' },
+      correlationId: 'corr-19',
+      userId: 'u_sync_test',
+      enqueuedAt: new Date().toISOString(),
+    });
+
+    expect(mockSyncProfile).toHaveBeenCalledWith('gho_test_token_123');
   });
 });
