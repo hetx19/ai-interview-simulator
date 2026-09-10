@@ -11,7 +11,7 @@ describe("Verified-Email Account Linking & Security", () => {
   const adapter = EncryptedPrismaAdapter(db);
 
   beforeAll(async () => {
-    process.env.TOKEN_ENCRYPTION_KEY = TEST_KEY;
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = TEST_KEY;
 
     // user with github account
     const user = await adapter.createUser!({

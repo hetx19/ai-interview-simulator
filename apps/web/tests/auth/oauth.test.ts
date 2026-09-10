@@ -10,7 +10,7 @@ describe("OAuth Authentication Flow & Error Handling", () => {
   const adapter = EncryptedPrismaAdapter(db);
 
   beforeAll(() => {
-    process.env.TOKEN_ENCRYPTION_KEY = TEST_KEY;
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = TEST_KEY;
   });
 
   afterAll(async () => {

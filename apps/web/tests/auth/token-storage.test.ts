@@ -13,7 +13,7 @@ describe("OAuth Token Storage & Persistence Encryption", () => {
   const adapter = EncryptedPrismaAdapter(db);
 
   beforeAll(async () => {
-    process.env.TOKEN_ENCRYPTION_KEY = TEST_KEY;
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = TEST_KEY;
 
     // test user
     const user = await adapter.createUser!({

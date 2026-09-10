@@ -1,24 +1,19 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { db } from "@/lib/prisma";
 
+import { env } from "@/lib/env";
+
 const ALGORITHM = "aes-256-gcm";
 const IV_BYTES = 12; // 96-bit nonce for gcm
 const TAG_BYTES = 16; // 128-bit auth tag
 
 function getKey(): Buffer {
-  const hex =
-    process.env.TOKEN_ENCRYPTION_KEY || process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
+  const hex = process.env.NODE_ENV === "test"
+    ? process.env.GITHUB_TOKEN_ENCRYPTION_KEY
+    : env.GITHUB_TOKEN_ENCRYPTION_KEY;
 
-  if (!hex) {
-    throw new Error(
-      "TOKEN_ENCRYPTION_KEY is required for token encryption. Please set a 64-character hex string (32 bytes).",
-    );
-  }
-
-  if (hex.length !== 64 || !/^[0-9a-fA-F]+$/.test(hex)) {
-    throw new Error(
-      "TOKEN_ENCRYPTION_KEY must be a 64-character hex string (32 bytes).",
-    );
+  if (!hex || hex.length !== 64 || !/^[0-9a-fA-F]+$/.test(hex)) {
+    throw new Error("GITHUB_TOKEN_ENCRYPTION_KEY must be a 64-character hex string (32 bytes).");
   }
 
   return Buffer.from(hex, "hex");

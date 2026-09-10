@@ -7,15 +7,13 @@ import {
 const VALID_TEST_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 describe("OAuth Token Encryption (AES-256-GCM)", () => {
-  const originalKey = process.env.TOKEN_ENCRYPTION_KEY;
   const originalGhKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
 
   beforeAll(() => {
-    process.env.TOKEN_ENCRYPTION_KEY = VALID_TEST_KEY;
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = VALID_TEST_KEY;
   });
 
   afterAll(() => {
-    process.env.TOKEN_ENCRYPTION_KEY = originalKey;
     process.env.GITHUB_TOKEN_ENCRYPTION_KEY = originalGhKey;
   });
 
@@ -99,19 +97,18 @@ describe("OAuth Token Encryption (AES-256-GCM)", () => {
   });
 
   it("fails safely when encryption key is missing", () => {
-    delete process.env.TOKEN_ENCRYPTION_KEY;
     delete process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
 
     expect(() => encryptToken("some_token")).toThrow(
-      "TOKEN_ENCRYPTION_KEY is required",
+      "GITHUB_TOKEN_ENCRYPTION_KEY must be a 64-character hex string (32 bytes).",
     );
   });
 
   it("fails safely when encryption key is invalid length (not 32 bytes / 64 hex chars)", () => {
-    process.env.TOKEN_ENCRYPTION_KEY = "short_invalid_key";
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = "short_invalid_key";
 
     expect(() => encryptToken("some_token")).toThrow(
-      "TOKEN_ENCRYPTION_KEY must be a 64-character hex string",
+      "GITHUB_TOKEN_ENCRYPTION_KEY must be a 64-character hex string (32 bytes).",
     );
   });
 });
