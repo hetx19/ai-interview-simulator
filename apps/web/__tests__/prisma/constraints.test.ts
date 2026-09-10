@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
+import { randomUUID } from "node:crypto";
 
 const TEST_DATABASE_URL = process.env["TEST_DATABASE_URL"];
 if (!TEST_DATABASE_URL) {
@@ -25,14 +26,12 @@ afterAll(async () => {
 });
 
 // helpers
-let _seq = 0;
-
 async function createUser(tag = ""): Promise<string> {
-  const n = ++_seq;
+  const uid = randomUUID().slice(0, 8);
   const u = await db.user.create({
     data: {
-      email: `ctest_${n}${tag}@devmetric.test`,
-      username: `ctest_${n}${tag}`,
+      email: `ctest_${uid}_${tag}@devmetric.test`,
+      username: `ctest_${uid}_${tag}`,
       name: "Test",
       targetCompanies: [],
     },
