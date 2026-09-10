@@ -15,7 +15,7 @@ export abstract class BaseRepository {
   protected userScope(isUserModel = false): Record<string, any> {
     return isUserModel
       ? { id: this.userId, deletedAt: null }
-      : { userId: this.userId, deletedAt: null };
+      : { userId: this.userId };
   }
 
   protected async findFirst<T>(
@@ -26,7 +26,7 @@ export abstract class BaseRepository {
     const isUserModel = delegate === this.db.user;
     const baseWhere = isUserModel
       ? { id: this.userId, deletedAt: null }
-      : { userId: this.userId, deletedAt: null };
+      : { userId: this.userId };
 
     return delegate.findFirst({
       where: { ...baseWhere, ...where },

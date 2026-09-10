@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { db } from '@/lib/prisma';
+import { BaseRepository } from '@/server/repositories/BaseRepository';
 import { UserRepository } from '@/server/repositories/UserRepository';
 import crypto from 'node:crypto';
 
@@ -135,5 +136,17 @@ describe('BaseRepository & UserRepository Scoping', () => {
     expect(() => new UserRepository('   ')).toThrow(
       'BaseRepository requires a userId',
     );
+  });
+
+  it('34. queries non-User model (GithubProfile) without throwing unknown argument deletedAt', async () => {
+    class TestGithubRepo extends BaseRepository {
+      public async findProfile() {
+        return this.findFirst(this.db.githubProfile);
+      }
+    }
+
+    const repo = new TestGithubRepo(userA.id);
+    const profile = await repo.findProfile();
+    expect(profile).toBeNull();
   });
 });
