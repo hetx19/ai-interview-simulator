@@ -10,14 +10,14 @@ generator client {
 // USERS
 // =============================================================================
 model User {
-  id              String    @id @default(uuid()) @db.Uuid
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email           String    @unique @db.VarChar(255)
   name            String?   @db.VarChar(255)
   username        String    @unique @db.VarChar(100)
   avatarUrl       String?   @map("avatar_url")
   role            String    @default("user") @db.VarChar(50)
   targetRole      String?   @map("target_role") @db.VarChar(100)
-  targetCompanies String[]  @map("target_companies")
+  targetCompanies String[]  @default([]) @map("target_companies")
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt       DateTime? @map("deleted_at") @db.Timestamptz
@@ -48,7 +48,7 @@ model User {
 // AUTH — ACCOUNTS
 // =============================================================================
 model Account {
-  id                String   @id @default(uuid()) @db.Uuid
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId            String   @map("user_id") @db.Uuid
   provider          String   @db.VarChar(50)
   providerAccountId String   @map("provider_account_id") @db.VarChar(255)
@@ -71,7 +71,7 @@ model Account {
 // AUTH — SESSIONS
 // =============================================================================
 model Session {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId       String   @map("user_id") @db.Uuid
   sessionToken String   @unique @map("session_token") @db.VarChar(500)
   expires      DateTime @db.Timestamptz
@@ -85,7 +85,7 @@ model Session {
 }
 
 model GithubProfile {
-  id                   String    @id @default(uuid()) @db.Uuid
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId               String    @unique @map("user_id") @db.Uuid
   githubUsername       String    @map("github_username") @db.VarChar(100)
   /// CHECK (github_score BETWEEN 0 AND 100) — enforced in migration SQL
@@ -104,7 +104,7 @@ model GithubProfile {
   contributionCalendar Json?     @map("contribution_calendar")
   /// JSONB: [{name, stars, forks, url, description}]
   topRepos             Json?     @map("top_repos")
-  recommendations      String[]
+  recommendations      String[]  @default([])
   lastSyncedAt         DateTime? @map("last_synced_at") @db.Timestamptz
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -118,7 +118,7 @@ model GithubProfile {
 // LEETCODE PROFILES
 // =============================================================================
 model LeetcodeProfile {
-  id               String    @id @default(uuid()) @db.Uuid
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId           String    @unique @map("user_id") @db.Uuid
   leetcodeUsername String    @map("leetcode_username") @db.VarChar(100)
   /// CHECK (leetcode_score BETWEEN 0 AND 100) — enforced in migration SQL
@@ -132,7 +132,7 @@ model LeetcodeProfile {
   streakDays       Int       @default(0) @map("streak_days")
   /// JSONB: {"Arrays": {"solved": 10, "total": 50}, ...}
   topicPerformance Json?     @map("topic_performance")
-  weakTopics       String[]  @map("weak_topics")
+  weakTopics       String[]  @default([]) @map("weak_topics")
   /// JSONB: [{slug, title, difficulty, url}]
   recommendations  Json?
   /// JSONB: [{date, rating, ranking, problemsSolved}]
@@ -150,7 +150,7 @@ model LeetcodeProfile {
 // RESUMES
 // =============================================================================
 model Resume {
-  id            String @id @default(uuid()) @db.Uuid
+  id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId        String @map("user_id") @db.Uuid
   fileUrl       String @map("file_url")
   fileName      String @map("file_name") @db.VarChar(255)
@@ -173,7 +173,7 @@ model Resume {
 
   /// CHECK (impact_score BETWEEN 0 AND 100) — enforced in migration SQL
   impactScore     Int?     @map("impact_score") @db.SmallInt
-  missingKeywords String[] @map("missing_keywords")
+  missingKeywords String[] @default([]) @map("missing_keywords")
 
   /// JSONB: [{original, suggestion, reason}]
   weakBullets Json? @map("weak_bullets")
@@ -197,13 +197,13 @@ model Resume {
 // PROBLEM BANK
 // =============================================================================
 model ProblemBank {
-  id          String @id @default(uuid()) @db.Uuid
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title       String @db.VarChar(255)
   description String
 
   /// JSONB: [{input, output, explanation}]
   examples    Json
-  constraints String[]
+  constraints String[] @default([])
 
   /// JSONB: [{input, expected_output}]
   testCasesVisible Json @map("test_cases_visible")
@@ -225,7 +225,7 @@ model ProblemBank {
 
   /// JSONB: [{level: 1, text: "..."}, ...]
   hints    Json?
-  tags     String[]
+  tags     String[] @default([])
   isActive Boolean  @default(true) @map("is_active")
 
   /// FK to users(id) — the admin who reviewed/approved this problem
@@ -244,7 +244,7 @@ model ProblemBank {
 // INTERVIEW SESSIONS
 // =============================================================================
 model InterviewSession {
-  id     String @id @default(uuid()) @db.Uuid
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId String @map("user_id") @db.Uuid
 
   /// in_progress | completed | abandoned
@@ -276,7 +276,7 @@ model InterviewSession {
 // INTERVIEW PROBLEMS
 // =============================================================================
 model InterviewProblem {
-  id        String @id @default(uuid()) @db.Uuid
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   sessionId String @unique @map("session_id") @db.Uuid
 
   /// Nullable FK: set when problem was drawn from problem_bank; null for AI-generated ad-hoc problems
@@ -288,7 +288,7 @@ model InterviewProblem {
 
   /// JSONB: [{input, output, explanation}]
   examples    Json
-  constraints String[]
+  constraints String[] @default([])
 
   /// JSONB: [{input, expected_output}]
   testCasesVisible Json @map("test_cases_visible")
@@ -300,7 +300,7 @@ model InterviewProblem {
 
   /// JSONB: [{level: 1, text: "..."}, ...]
   hints     Json?
-  tags      String[]
+  tags      String[] @default([])
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   session     InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -314,7 +314,7 @@ model InterviewProblem {
 // INTERVIEW SUBMISSIONS
 // =============================================================================
 model InterviewSubmission {
-  id        String @id @default(uuid()) @db.Uuid
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   sessionId String @map("session_id") @db.Uuid
   code      String
   language  String @db.VarChar(50)
@@ -339,7 +339,7 @@ model InterviewSubmission {
 // Score columns have CHECK (BETWEEN 0 AND 100) enforced in migration SQL.
 // =============================================================================
 model InterviewScores {
-  id        String @id @default(uuid()) @db.Uuid
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   sessionId String @unique @map("session_id") @db.Uuid
 
   /// CHECK (communication_score BETWEEN 0 AND 100) — enforced in migration SQL
@@ -359,7 +359,7 @@ model InterviewScores {
 
   /// JSONB: {communication: "...", dsa: "...", ...}
   feedback     Json?
-  improvements String[]
+  improvements String[] @default([])
 
   /// Full AI code analysis output
   codeAnalysis Json? @map("code_analysis")
@@ -380,7 +380,7 @@ model InterviewScores {
 // VOICE TRANSCRIPTS
 // =============================================================================
 model VoiceTranscript {
-  id           String @id @default(uuid()) @db.Uuid
+  id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   sessionId    String @map("session_id") @db.Uuid
   segmentIndex Int    @map("segment_index")
 
@@ -404,7 +404,7 @@ model VoiceTranscript {
 // Score columns have CHECK (BETWEEN 0 AND 100) enforced in migration SQL.
 // =============================================================================
 model HiringReadinessScore {
-  id     String @id @default(uuid()) @db.Uuid
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId String @unique @map("user_id") @db.Uuid
 
   /// CHECK (overall_score BETWEEN 0 AND 100) — enforced in migration SQL
@@ -435,7 +435,7 @@ model HiringReadinessScore {
 // USER SETTINGS
 // =============================================================================
 model UserSettings {
-  id     String @id @default(uuid()) @db.Uuid
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId String @unique @map("user_id") @db.Uuid
 
   // Privacy
@@ -467,7 +467,7 @@ model UserSettings {
 // AUDIT LOGS
 // =============================================================================
 model AuditLog {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId     String?  @map("user_id") @db.Uuid
   action     String   @db.VarChar(100)
   entityType String?  @map("entity_type") @db.VarChar(100)
