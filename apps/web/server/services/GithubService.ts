@@ -2,7 +2,6 @@ import { GitHubApiClient, gitHubApiClient, GitHubRepo, ContributionCalendar } fr
 import { GithubRepository } from '@/server/repositories/GithubRepository';
 import { cacheKeys, cacheTags, cacheTTL } from '@/lib/cache/cacheKeys';
 import { redis, getCached } from '@/server/cache/redisClient';
-import { AppError } from '@/server/graphql/errors';
 import { logger } from '@/server/logging/logger';
 import { getCorrelationId } from '@/server/logging/correlationStore';
 import type { GithubProfile } from '@prisma/client';
@@ -320,6 +319,7 @@ export class GithubService {
 
     // Persist to database via GithubRepository
     const profile = await this.repository.upsertProfile(this.userId, {
+      userId: this.userId,
       githubUsername: userProfile.login,
       githubScore: breakdown.githubScore,
       repoHealthScore: breakdown.repoHealthScore,

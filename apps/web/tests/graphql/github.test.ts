@@ -82,7 +82,7 @@ describe('GraphQL GitHub Analytics (githubProfile & syncGitHub)', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query: '{ githubProfile { id githubUsername githubScore totalRepos recommendations } }',
+        query: '{ githubProfile { id githubUsername githubScore totalRepos totalForks recommendations } }',
       }),
     });
 
@@ -94,6 +94,7 @@ describe('GraphQL GitHub Analytics (githubProfile & syncGitHub)', () => {
       githubUsername: 'octocat',
       githubScore: 88,
       totalRepos: 15,
+      totalForks: 30,
       recommendations: ['Keep up the great work!'],
     });
   });

@@ -34,6 +34,7 @@ export interface GitHubProfileGql {
   openSourceScore: number | null;
   totalRepos: number;
   totalStars: number;
+  totalForks: number;
   totalCommitsYear: number;
   languageDistribution: Record<string, any> | null;
   contributionCalendar: Record<string, any> | null;

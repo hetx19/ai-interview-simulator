@@ -20,6 +20,7 @@ export const githubResolvers = {
         openSourceScore: profile.openSourceScore,
         totalRepos: profile.totalRepos,
         totalStars: profile.totalStars,
+        totalForks: profile.totalForks ?? 0,
         totalCommitsYear: profile.totalCommitsYear,
         languageDistribution: profile.languageDistribution,
         contributionCalendar: profile.contributionCalendar,

@@ -15,7 +15,7 @@ export class GithubRepository extends BaseRepository {
 
   public async upsertProfile(
     userId: string,
-    data: Prisma.GithubProfileUncheckedCreateInput,
+    data: Omit<Prisma.GithubProfileUncheckedCreateInput, 'userId'> & { userId?: string },
   ): Promise<GithubProfile> {
     const targetUserId = userId ?? this.userId;
     return this.db.githubProfile.upsert({

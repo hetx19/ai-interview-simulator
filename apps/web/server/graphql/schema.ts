@@ -21,6 +21,7 @@ export const typeDefs = /* GraphQL */ `
     openSourceScore: Int
     totalRepos: Int!
     totalStars: Int!
+    totalForks: Int!
     totalCommitsYear: Int!
     languageDistribution: JSON
     contributionCalendar: JSON
