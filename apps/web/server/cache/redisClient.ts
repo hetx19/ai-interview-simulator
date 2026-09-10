@@ -93,10 +93,14 @@ async function executeWithLock<T>(
   } finally {
     if (acquired) {
       try {
-        const current = await redis.get(lockKey);
-        if (current === lockToken) {
-          await redis.del(lockKey);
-        }
+        const releaseLockLua = `
+  if redis.call("get", KEYS[1]) == ARGV[1] then
+    return redis.call("del", KEYS[1])
+  else
+    return 0
+  end
+`;
+        await redis.eval(releaseLockLua, [lockKey], [lockToken]);
       } catch (err) {
         logger.warn(
           { key, err, correlationId: getCorrelationId() },

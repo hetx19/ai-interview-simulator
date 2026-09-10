@@ -10,6 +10,7 @@ vi.mock('@vercel/kv', () => {
     smembers: vi.fn(),
     scan: vi.fn(),
     expire: vi.fn(),
+    eval: vi.fn(),
   };
   return { kv };
 });
@@ -158,5 +159,28 @@ describe('Cache Layer - getCached & invalidation', () => {
     expect(res2).toEqual({ key: 2 });
     expect(fetcher1).toHaveBeenCalledTimes(1);
     expect(fetcher2).toHaveBeenCalledTimes(1);
+  });
+
+  it('11. Atomic lock release invokes eval with Lua script', async () => {
+    vi.mocked(redis.get).mockResolvedValueOnce(null);
+    vi.mocked(redis.set).mockResolvedValue('OK');
+    let capturedLua = '';
+    let capturedKeys: string[] = [];
+    let capturedArgs: string[] = [];
+
+    vi.mocked(redis.eval).mockImplementation(async (lua: any, keys: any, args: any) => {
+      capturedLua = lua;
+      capturedKeys = keys;
+      capturedArgs = args;
+      return 1;
+    });
+
+    const fetcher = vi.fn().mockResolvedValue({ success: true });
+    await getCached('lock-test-key', fetcher, { ttl: 60 });
+
+    expect(redis.eval).toHaveBeenCalledTimes(1);
+    expect(capturedLua).toContain('redis.call("del", KEYS[1])');
+    expect(capturedKeys[0]).toBe('lock:lock-test-key');
+    expect(capturedArgs[0]).toBeDefined();
   });
 });
