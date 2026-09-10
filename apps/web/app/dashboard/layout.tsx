@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { userRepository } from "@/server/repositories/UserRepository";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { Topbar } from "@/components/ui/Topbar";
+import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 
 // auth and onboarding gate for dashboard shell
 export default async function DashboardLayout({
@@ -28,11 +29,11 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#13131b]">
-      {/* sidebar */}
+      {/* desktop sidebar */}
       <Sidebar />
 
-      {/* content */}
-      <div className="pl-64">
+      {/* content wrapper */}
+      <div className="lg:pl-64 pl-0 pb-20 lg:pb-0 min-h-screen flex flex-col">
         {/* topbar */}
         <Topbar
           userName={session.user.name ?? "Developer"}
@@ -40,10 +41,13 @@ export default async function DashboardLayout({
         />
 
         {/* main view */}
-        <main className="w-full pt-16 bg-[#13131b] min-h-screen">
+        <main className="w-full pt-16 bg-[#13131b] flex-1">
           {children}
         </main>
       </div>
+
+      {/* mobile bottom navigation */}
+      <MobileBottomNav />
     </div>
   );
 }

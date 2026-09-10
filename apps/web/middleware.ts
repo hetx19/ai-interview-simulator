@@ -22,6 +22,10 @@ export function isPublicRoute(pathname: string): boolean {
   if (pathname === "/api/auth" || pathname.startsWith("/api/auth/"))
     return true;
 
+  // webhooks (signed by qstash or third parties)
+  if (pathname === "/api/webhooks" || pathname.startsWith("/api/webhooks/"))
+    return true;
+
   // static files and bundles
   if (
     pathname.startsWith("/_next") ||

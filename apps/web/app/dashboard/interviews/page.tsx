@@ -36,26 +36,55 @@ const SESSIONS = [
 export default function MockInterviewsIndexPage() {
   return (
     <div className="flex flex-col w-full">
-      <div className="p-6 max-w-[1440px] mx-auto w-full space-y-8">
+      <div className="p-4 sm:p-6 max-w-[1440px] mx-auto w-full space-y-8">
 
-        {/* header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-[28px] leading-9 font-semibold text-[#e4e1ed] font-sora">
-              AI Mock Interviews
-            </h1>
-            <p className="text-[14px] leading-5 text-[#c7c5d0] mt-1">
-              Real-time voice telemetry, Monaco editor, and live AST analysis against FAANG rubrics.
-            </p>
+        {/* Mobile Guard: Mock Interview is Desktop/Laptop-Only */}
+        <div className="block lg:hidden">
+          <div className="rounded-xl bg-[#1b1b23]/95 border border-[#46464f]/30 p-6 sm:p-8 text-center flex flex-col items-center gap-4 shadow-xl">
+            <div className="w-14 h-14 rounded-2xl bg-[#c0c1ff]/15 border border-[#c0c1ff]/30 flex items-center justify-center text-[#c0c1ff]">
+              <span className="material-symbols-outlined text-3xl">laptop_mac</span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] uppercase tracking-wider font-semibold font-mono text-[#c0c1ff]">
+                Desktop Display Required
+              </span>
+              <h2 className="text-xl font-semibold text-[#e4e1ed] font-sora">
+                AI Mock Interview Workspace
+              </h2>
+              <p className="text-sm text-[#c7c5d0] max-w-sm leading-relaxed">
+                The technical mock interview environment, Monaco IDE, and real-time audio evaluator are designed exclusively for desktop and laptop displays (1024px+).
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#c0c1ff] hover:bg-[#e1dfff] text-[#131449] text-sm font-semibold transition-all shadow-[0_0_16px_rgba(192,193,255,0.25)]"
+            >
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              <span>Return to Dashboard</span>
+            </Link>
           </div>
-          <Link
-            href="/dashboard/interviews/1"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#c0c1ff] text-[#1b1b23] font-semibold text-[14px] leading-5 hover:bg-[#d5d5ff] transition-colors shadow-[0_0_20px_rgba(192,193,255,0.3)]"
-          >
-            <span className="material-symbols-outlined text-lg">add</span>
-            New Session
-          </Link>
         </div>
+
+        {/* Desktop Interface */}
+        <div className="hidden lg:block space-y-8">
+          {/* header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-[28px] leading-9 font-semibold text-[#e4e1ed] font-sora">
+                AI Mock Interviews
+              </h1>
+              <p className="text-[14px] leading-5 text-[#c7c5d0] mt-1">
+                Real-time voice telemetry, Monaco editor, and live AST analysis against FAANG rubrics.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/interviews/1"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#c0c1ff] text-[#1b1b23] font-semibold text-[14px] leading-5 hover:bg-[#d5d5ff] transition-colors shadow-[0_0_20px_rgba(192,193,255,0.3)]"
+            >
+              <span className="material-symbols-outlined text-lg">add</span>
+              New Session
+            </Link>
+          </div>
 
         {/* active round */}
         <div className="bg-[#1f1f27]/80 rounded-2xl p-6 border border-[#46464f]/30 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
@@ -137,6 +166,7 @@ export default function MockInterviewsIndexPage() {
                 </div>
               </div>
             ))}
+          </div>
           </div>
         </div>
 

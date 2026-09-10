@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export default function MockInterviewWorkspace() {
   const [isMuted, setIsMuted] = useState(false);
@@ -24,7 +25,35 @@ export default function MockInterviewWorkspace() {
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-[#13131b]">
-      <div className="flex flex-col w-full px-6 py-4 space-y-4 max-w-[1440px] mx-auto">
+      {/* Mobile Guard: Mock Interview is Desktop/Laptop-Only */}
+      <div className="flex lg:hidden flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+        <div className="rounded-xl bg-[#1b1b23]/95 border border-[#46464f]/30 p-6 sm:p-8 max-w-md flex flex-col items-center gap-4 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-[#c0c1ff]/15 border border-[#c0c1ff]/30 flex items-center justify-center text-[#c0c1ff]">
+            <span className="material-symbols-outlined text-3xl">laptop_mac</span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] uppercase tracking-wider font-semibold font-mono text-[#c0c1ff]">
+              Desktop Display Required
+            </span>
+            <h2 className="text-xl font-semibold text-[#e4e1ed] font-sora">
+              Live Coding &amp; Voice Workspace
+            </h2>
+            <p className="text-sm text-[#c7c5d0] leading-relaxed">
+              Live technical mock interviews require a desktop or laptop environment with Monaco code execution, AST telemetry, and full keyboard interaction.
+            </p>
+          </div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#c0c1ff] hover:bg-[#e1dfff] text-[#131449] text-sm font-semibold transition-all shadow-[0_0_16px_rgba(192,193,255,0.25)]"
+          >
+            <span className="material-symbols-outlined text-base">arrow_back</span>
+            <span>Return to Dashboard</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Desktop Workspace */}
+      <div className="hidden lg:flex flex-col w-full px-6 py-4 space-y-4 max-w-[1440px] mx-auto">
 
         {/* diagnostic bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 bg-[#1b1b23]/90 backdrop-blur-xl p-3 rounded-xl border border-[#46464f]/20 shadow-md">
@@ -573,7 +602,7 @@ export default function MockInterviewWorkspace() {
           </div>
         )}
 
+        </div>
       </div>
-    </div>
   );
 }

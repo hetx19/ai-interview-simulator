@@ -19,15 +19,45 @@ export function Topbar({
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
-    <header className="fixed top-0 left-64 right-0 h-16 bg-[#13131b]/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-6">
-      {/* breadcrumbs */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-1.5 text-[12px] leading-[18px] text-[#918f9a]">
+    <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-[#13131b]/85 backdrop-blur-xl border-b border-[#46464f]/20 shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-4 sm:px-6">
+      {/* breadcrumbs / mobile brand */}
+      <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+        {/* mobile logo & title */}
+        <div className="flex lg:hidden items-center gap-2 min-w-0">
+          <svg className="h-7 w-7 flex-shrink-0" viewBox="0 0 48 48" fill="none">
+            <path
+              d="M24 4L6 12v12c0 10.5 7.7 20.4 18 23 10.3-2.6 18-12.5 18-23V12L24 4z"
+              fill="#c0c1ff"
+              fillOpacity="0.15"
+              stroke="#c0c1ff"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M17 24l5 5 9-9"
+              stroke="#6bde80"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[15px] font-semibold text-[#e1dfff] tracking-tight font-sora leading-tight truncate">
+              DevMetric
+            </span>
+            <span className="text-[10px] uppercase tracking-wider text-[#c7c5d0] leading-none mt-0.5 truncate">
+              {pageCrumb}
+            </span>
+          </div>
+        </div>
+
+        {/* desktop breadcrumbs */}
+        <div className="hidden lg:flex items-center gap-1.5 text-[12px] leading-[18px] text-[#918f9a]">
           <span className="text-[#c7c5d0]">DevMetric</span>
           <span className="material-symbols-outlined text-sm text-[#918f9a]">chevron_right</span>
           <span className="text-[#e1dfff] font-medium">{pageCrumb}</span>
         </div>
-        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#c0c1ff]/15 shadow-[0_0_16px_rgba(192,193,255,0.2)]">
+        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#c0c1ff]/15 shadow-[0_0_16px_rgba(192,193,255,0.2)]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#e1dfff] shadow-[0_0_8px_rgba(192,193,255,0.8)]" />
           <span className="text-[10px] leading-[14px] font-[600] tracking-[0.06em] uppercase text-[#e1dfff]">
             Targeting: FAANG / Top Tech Tier

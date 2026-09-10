@@ -5,6 +5,7 @@ import { useState } from "react";
 export default function ResumeScannerPage() {
   const [activeTab, setActiveTab] = useState<"rewriter" | "keywords">("rewriter");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [appliedBullets, setAppliedBullets] = useState<Record<string, boolean>>({});
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -16,9 +17,17 @@ export default function ResumeScannerPage() {
     showToast("Copied optimized bullet to clipboard!");
   };
 
+  const handleApplyRevision = (key: string) => {
+    setAppliedBullets((prev) => ({ ...prev, [key]: true }));
+    showToast("Applied revision to active profile!");
+    setTimeout(() => {
+      setAppliedBullets((prev) => ({ ...prev, [key]: false }));
+    }, 2500);
+  };
+
   return (
     <div className="flex flex-col w-full">
-      <div className="p-6 max-w-[1440px] mx-auto w-full space-y-8">
+      <div className="p-4 sm:p-6 max-w-[1440px] mx-auto w-full space-y-6 sm:space-y-8">
 
         {/* header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -28,21 +37,23 @@ export default function ResumeScannerPage() {
                 Diagnostic Pipeline
               </span>
               <span className="w-1 h-1 rounded-full bg-[#918f9a]" />
-              <span className="text-[10px] leading-[14px] font-[600] text-[#6bde80] uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1 text-[10px] leading-[14px] font-[600] text-[#6bde80] uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#6bde80] animate-pulse" />
                 Semantic Parse 3.8
               </span>
             </div>
-            <h1 className="text-[32px] leading-[40px] font-[600] text-[#e4e1ed] tracking-tight">
+            <h1 className="text-[24px] sm:text-[32px] leading-[32px] sm:leading-[40px] font-[600] text-[#e4e1ed] tracking-tight">
               Resume Scanner &amp; ATS Intelligence
             </h1>
-            <p className="text-[14px] leading-[22px] text-[#c7c5d0] max-w-2xl">
+            <p className="text-[12px] sm:text-[14px] leading-[18px] sm:leading-[22px] text-[#c7c5d0] max-w-2xl">
               Deep structural ATS tokenization, semantic relevance scoring, and automated metric-driven phrase optimization calibrated for FAANG &amp; tier-1 infrastructure roles.
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start lg:self-auto">
+          <div className="hidden sm:flex items-center gap-2 self-start lg:self-auto">
             <button
               type="button"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#292932] hover:bg-[#34343d] text-[#e4e1ed] transition-all text-[16px] leading-[24px] font-[500] shadow-md"
+              onClick={() => showToast("Exporting audit PDF report...")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#292932] hover:bg-[#34343d] text-[#e4e1ed] transition-all text-[14px] sm:text-[16px] leading-[20px] sm:leading-[24px] font-[500] shadow-md"
             >
               <span className="material-symbols-outlined text-[#e1dfff] text-base">download</span>
               <span>Export Audit PDF</span>
@@ -50,7 +61,7 @@ export default function ResumeScannerPage() {
             <button
               type="button"
               onClick={() => showToast("Fresh audit initiated...")}
-              className="flex items-center gap-1.5 px-6 py-2 rounded-lg bg-[#c0c1ff] hover:bg-[#e1dfff] text-[#131449] transition-all text-[16px] leading-[24px] font-[500] shadow-[0_0_20px_rgba(192,193,255,0.35)] active:scale-95"
+              className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-[#c0c1ff] hover:bg-[#e1dfff] text-[#131449] transition-all text-[14px] sm:text-[16px] leading-[20px] sm:leading-[24px] font-[500] shadow-[0_0_20px_rgba(192,193,255,0.35)] active:scale-95 font-semibold"
             >
               <span className="material-symbols-outlined text-base">sync</span>
               <span>Run Fresh Audit</span>
@@ -58,38 +69,56 @@ export default function ResumeScannerPage() {
           </div>
         </div>
 
-        {/* upload dropzone */}
-        <div className="relative overflow-hidden rounded-xl bg-[#1b1b23] backdrop-blur-xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+        {/* upload dropzone / current file card */}
+        <div className="relative overflow-hidden rounded-xl bg-[#1b1b23] backdrop-blur-xl p-4 sm:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
           <div className="absolute -right-24 -top-24 w-96 h-96 rounded-full bg-[#e1dfff]/5 blur-3xl pointer-events-none" />
-          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-start sm:items-center gap-4">
-              <div className="w-14 h-14 rounded-xl bg-[#0d0d15] flex items-center justify-center text-[#e1dfff] shadow-[0_0_16px_rgba(192,193,255,0.15)] shrink-0">
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#0d0d15] flex items-center justify-center text-[#e1dfff] shadow-[0_0_16px_rgba(192,193,255,0.15)] shrink-0">
                 <span className="material-symbols-outlined text-2xl">picture_as_pdf</span>
               </div>
-              <div className="flex flex-col space-y-1">
+              <div className="flex flex-col space-y-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[16px] leading-[24px] font-[500] text-[#e4e1ed] font-semibold">
+                  <span className="text-[15px] sm:text-[16px] leading-[22px] sm:leading-[24px] font-[500] text-[#e4e1ed] font-semibold truncate">
                     Senior_Software_Engineer_Resume_2025.pdf
                   </span>
                   <span className="px-2 py-0.5 rounded-full bg-[#34343d] text-[#c7c5d0] text-[10px] leading-[14px] font-[600]">
                     324 KB
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-[12px] leading-[18px]">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[12px] leading-[18px]">
                   <div className="flex items-center gap-1.5 text-[#6bde80]">
                     <span className="w-2 h-2 rounded-full bg-[#6bde80] shadow-[0_0_8px_rgba(107,222,128,0.7)]" />
-                    <span className="font-medium">Scanned &amp; Parsed 2m ago</span>
+                    <span className="font-medium">Scanned 2m ago</span>
                   </div>
                   <span className="text-[#918f9a]">•</span>
-                  <span className="text-[#c7c5d0]">
-                    Target Role: <strong className="text-[#e4e1ed]">Staff / Senior Backend Platform</strong>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#292932] text-[#e1dfff] text-[10px] font-semibold">
+                    <span className="material-symbols-outlined text-[12px]">track_changes</span>
+                    Target: Staff Backend
                   </span>
-                  <span className="text-[#918f9a]">•</span>
-                  <span className="text-[#c0c1ff]">Engine: Parser Core v4.2</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 w-full md:w-auto">
+
+            {/* mobile actions (2 cols) */}
+            <div className="grid grid-cols-2 gap-2 w-full md:hidden pt-2 border-t border-[#34343d]/50">
+              <label className="cursor-pointer min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg bg-[#292932] hover:bg-[#34343d] text-[#e4e1ed] text-[13px] font-medium transition-colors active:scale-95">
+                <span className="material-symbols-outlined text-[18px] text-[#e1dfff]">upload_file</span>
+                <span>Upload New</span>
+                <input accept=".pdf,.docx" className="hidden" type="file" />
+              </label>
+              <button
+                type="button"
+                onClick={() => showToast("Exporting PDF audit report...")}
+                className="min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg bg-[#292932] hover:bg-[#34343d] text-[#e4e1ed] text-[13px] font-medium transition-colors active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[18px] text-[#6bde80]">download</span>
+                <span>Export PDF</span>
+              </button>
+            </div>
+
+            {/* desktop actions */}
+            <div className="hidden md:flex items-center gap-2 w-full md:w-auto">
               <label className="cursor-pointer w-full md:w-auto flex items-center justify-center gap-1.5 px-6 py-2 rounded-lg bg-[#292932] hover:bg-[#393841] text-[#e1dfff] transition-all text-[16px] leading-[24px] font-[500] shadow-sm">
                 <span className="material-symbols-outlined text-base">cloud_upload</span>
                 <span>Upload Updated Version</span>
@@ -106,102 +135,129 @@ export default function ResumeScannerPage() {
           </div>
         </div>
 
-        {/* ats score breakdown */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* overall score */}
-          <div className="sm:col-span-2 lg:col-span-1 rounded-xl bg-[#1b1b23] p-3 flex flex-col justify-between shadow-lg relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-b from-[#e1dfff]/10 via-transparent to-transparent opacity-60" />
-            <div className="relative z-10 flex items-center justify-between">
-              <span className="text-[10px] leading-[14px] font-[600] text-[#c7c5d0] uppercase tracking-wider">Composite Rating</span>
-              <span className="px-2 py-0.5 rounded-full bg-[#e1dfff]/20 text-[#e1dfff] text-[10px] leading-[14px] font-[600]">Primary</span>
-            </div>
-            <div className="relative z-10 my-3 flex items-baseline gap-1">
-              <span className="text-[48px] leading-[56px] font-[600] text-[#e1dfff] leading-none tracking-tight">81</span>
-              <span className="text-[16px] leading-[24px] text-[#918f9a]">/100</span>
-            </div>
-            <div className="relative z-10 flex flex-col space-y-1">
-              <div className="flex items-center gap-1.5 text-[#6bde80]">
-                <span className="material-symbols-outlined text-sm">verified_user</span>
-                <span className="text-[12px] leading-[18px] font-semibold">Strong FAANG Candidate</span>
-              </div>
-              <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
-                <div className="bg-[#e1dfff] h-full rounded-full transition-all duration-700 shadow-[0_0_12px_rgba(192,193,255,0.6)]" style={{ width: "81%" }} />
-              </div>
-            </div>
+        {/* parser metrics section */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[16px] sm:text-[18px] leading-[24px] sm:leading-[26px] font-[600] text-[#e4e1ed]">Parser Metrics</h2>
+            <span className="text-[12px] font-semibold text-[#6bde80] flex items-center gap-1">
+              <span className="material-symbols-outlined text-[16px]">trending_up</span>
+              Top 4% Cohort
+            </span>
           </div>
 
-          {/* ats compatibility */}
-          <div className="rounded-xl bg-[#1b1b23] p-3 flex flex-col justify-between shadow-md group hover:bg-[#1f1f27] transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] leading-[14px] font-[600] text-[#c7c5d0] uppercase tracking-wider">ATS Compatibility</span>
-              <span className="material-symbols-outlined text-[#6bde80] text-lg">check_circle</span>
-            </div>
-            <div className="my-3 flex items-baseline gap-0.5">
-              <span className="text-[48px] leading-[56px] font-[600] text-[#6bde80] leading-none">94</span>
-              <span className="text-[16px] leading-[24px] text-[#6bde80]/70">%</span>
-            </div>
-            <div className="flex flex-col space-y-1">
-              <span className="text-[12px] leading-[18px] text-[#c7c5d0] line-clamp-1">Clean parsing, 0 corrupt tables</span>
-              <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
-                <div className="bg-[#6bde80] h-full rounded-full" style={{ width: "94%" }} />
+          {/* ats score breakdown */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* overall composite rating hero */}
+            <div className="sm:col-span-2 lg:col-span-1 rounded-xl bg-[#1b1b23] p-4 flex flex-col justify-between shadow-lg relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-b from-[#e1dfff]/10 via-transparent to-transparent opacity-60" />
+              <div className="relative z-10 flex items-center justify-between">
+                <span className="text-[10px] leading-[14px] font-[600] text-[#c7c5d0] uppercase tracking-wider">Composite Rating</span>
+                <span className="px-2 py-0.5 rounded-full bg-[#e1dfff]/20 text-[#e1dfff] text-[10px] leading-[14px] font-[600]">Primary</span>
+              </div>
+              <div className="relative z-10 my-2 flex items-center justify-between">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[44px] sm:text-[48px] font-[600] text-[#e1dfff] leading-none tracking-tight">81</span>
+                  <span className="text-[16px] leading-[24px] text-[#918f9a]">/100</span>
+                </div>
+                {/* circular ring SVG */}
+                <div className="relative w-14 h-14 flex items-center justify-center">
+                  <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 64 64">
+                    <circle className="text-[#1f1f27]" cx="32" cy="32" fill="none" r="26" stroke="currentColor" strokeWidth="5" />
+                    <circle
+                      className="text-[#c0c1ff]"
+                      cx="32" cy="32" fill="none" r="26"
+                      stroke="currentColor" strokeWidth="5"
+                      strokeDasharray="163.36" strokeDashoffset="31.03"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="material-symbols-outlined text-[18px] text-[#e1dfff] absolute">verified</span>
+                </div>
+              </div>
+              <div className="relative z-10 flex flex-col space-y-1">
+                <div className="flex items-center gap-1.5 text-[#6bde80]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#6bde80]" />
+                  <span className="text-[12px] leading-[18px] font-semibold">Strong FAANG Match</span>
+                </div>
+                <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#e1dfff] h-full rounded-full transition-all duration-700 shadow-[0_0_12px_rgba(192,193,255,0.6)]" style={{ width: "81%" }} />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* format & structure */}
-          <div className="rounded-xl bg-[#1b1b23] p-3 flex flex-col justify-between shadow-md group hover:bg-[#1f1f27] transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] leading-[14px] font-[600] text-[#c7c5d0] uppercase tracking-wider">Format &amp; Structure</span>
-              <span className="material-symbols-outlined text-[#e1dfff] text-lg">view_stream</span>
-            </div>
-            <div className="my-3 flex items-baseline gap-0.5">
-              <span className="text-[48px] leading-[56px] font-[600] text-[#e4e1ed] leading-none">89</span>
-              <span className="text-[16px] leading-[24px] text-[#918f9a]">%</span>
-            </div>
-            <div className="flex flex-col space-y-1">
-              <span className="text-[12px] leading-[18px] text-[#c7c5d0] line-clamp-1">Optimal 1-page hierarchy</span>
-              <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
-                <div className="bg-[#c0c1ff] h-full rounded-full" style={{ width: "89%" }} />
+            {/* 2x2 grid on mobile / columns on desktop */}
+            <div className="col-span-1 sm:col-span-2 lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* ats compatibility */}
+              <div className="rounded-xl bg-[#1b1b23] p-3.5 flex flex-col justify-between shadow-md group hover:bg-[#1f1f27] transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="w-7 h-7 rounded-lg bg-[#1f1f27] flex items-center justify-center text-[#6bde80]">
+                    <span className="material-symbols-outlined text-[16px]">verified_user</span>
+                  </span>
+                  <span className="text-[11px] font-semibold text-[#6bde80]">+6%</span>
+                </div>
+                <div className="my-2">
+                  <span className="text-[28px] sm:text-[32px] font-[600] text-[#6bde80] leading-none">94%</span>
+                  <span className="text-[11px] text-[#c7c5d0] block mt-0.5">ATS Compatibility</span>
+                </div>
+                <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#6bde80] h-full rounded-full" style={{ width: "94%" }} />
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* keyword density */}
-          <div className="rounded-xl bg-[#1b1b23] p-3 flex flex-col justify-between shadow-md group hover:bg-[#1f1f27] transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] leading-[14px] font-[600] text-[#c7c5d0] uppercase tracking-wider">Keyword Density</span>
-              <span className="material-symbols-outlined text-[#ffb867] text-lg">fact_check</span>
-            </div>
-            <div className="my-3 flex items-baseline gap-0.5">
-              <span className="text-[48px] leading-[56px] font-[600] text-[#ffb867] leading-none">74</span>
-              <span className="text-[16px] leading-[24px] text-[#918f9a]">%</span>
-            </div>
-            <div className="flex flex-col space-y-1">
-              <span className="text-[12px] leading-[18px] text-[#c7c5d0] line-clamp-1">Sr. Backend Engineer target</span>
-              <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
-                <div className="bg-[#ffb867] h-full rounded-full" style={{ width: "74%" }} />
+              {/* format & structure */}
+              <div className="rounded-xl bg-[#1b1b23] p-3.5 flex flex-col justify-between shadow-md group hover:bg-[#1f1f27] transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="w-7 h-7 rounded-lg bg-[#1f1f27] flex items-center justify-center text-[#c0c1ff]">
+                    <span className="material-symbols-outlined text-[16px]">view_quilt</span>
+                  </span>
+                  <span className="text-[11px] font-semibold text-[#c0c1ff]">Optimal</span>
+                </div>
+                <div className="my-2">
+                  <span className="text-[28px] sm:text-[32px] font-[600] text-[#e4e1ed] leading-none">89%</span>
+                  <span className="text-[11px] text-[#c7c5d0] block mt-0.5">Format &amp; Structure</span>
+                </div>
+                <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#c0c1ff] h-full rounded-full" style={{ width: "89%" }} />
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* quantified impact */}
-          <div className="rounded-xl bg-[#1b1b23] p-3 flex flex-col justify-between shadow-md group hover:bg-[#1f1f27] transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] leading-[14px] font-[600] text-[#c7c5d0] uppercase tracking-wider">Quantified Impact</span>
-              <span className="material-symbols-outlined text-[#ffb4ab] text-lg">trending_up</span>
-            </div>
-            <div className="my-3 flex items-baseline gap-0.5">
-              <span className="text-[48px] leading-[56px] font-[600] text-[#ffb4ab] leading-none">68</span>
-              <span className="text-[16px] leading-[24px] text-[#918f9a]">%</span>
-            </div>
-            <div className="flex flex-col space-y-1">
-              <span className="text-[12px] leading-[18px] text-[#ffb4ab]/90 line-clamp-1">Needs metric-driven bullets</span>
-              <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
-                <div className="bg-[#ffb4ab] h-full rounded-full" style={{ width: "68%" }} />
+              {/* keyword density */}
+              <div className="rounded-xl bg-[#1b1b23] p-3.5 flex flex-col justify-between shadow-md group hover:bg-[#1f1f27] transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="w-7 h-7 rounded-lg bg-[#1f1f27] flex items-center justify-center text-[#ffb867]">
+                    <span className="material-symbols-outlined text-[16px]">key</span>
+                  </span>
+                  <span className="text-[11px] font-semibold text-[#ffdcba]">Mid</span>
+                </div>
+                <div className="my-2">
+                  <span className="text-[28px] sm:text-[32px] font-[600] text-[#ffb867] leading-none">74%</span>
+                  <span className="text-[11px] text-[#c7c5d0] block mt-0.5">Keyword Density</span>
+                </div>
+                <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#ffb867] h-full rounded-full" style={{ width: "74%" }} />
+                </div>
+              </div>
+
+              {/* quantified impact */}
+              <div className="rounded-xl bg-[#1b1b23] p-3.5 flex flex-col justify-between shadow-md group hover:bg-[#1f1f27] transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="w-7 h-7 rounded-lg bg-[#1f1f27] flex items-center justify-center text-[#ffb4ab]">
+                    <span className="material-symbols-outlined text-[16px]">query_stats</span>
+                  </span>
+                  <span className="text-[11px] font-semibold text-[#ffb4ab]">Low</span>
+                </div>
+                <div className="my-2">
+                  <span className="text-[28px] sm:text-[32px] font-[600] text-[#ffb4ab] leading-none">68%</span>
+                  <span className="text-[11px] text-[#c7c5d0] block mt-0.5">Quantified Impact</span>
+                </div>
+                <div className="w-full bg-[#0d0d15] h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-[#ffb4ab] h-full rounded-full" style={{ width: "68%" }} />
+                </div>
               </div>
             </div>
           </div>
         </div>
+
 
         {/* tabbed rewriter & keywords */}
         <div className="flex flex-col rounded-xl bg-[#1b1b23] shadow-xl overflow-hidden">
@@ -327,11 +383,17 @@ export default function ResumeScannerPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => showToast("Applied revision to active profile!")}
-                        className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#c0c1ff] text-[#292b5e] font-[500] hover:bg-[#e1dfff] transition-all shadow-[0_0_12px_rgba(192,193,255,0.3)]"
+                        onClick={() => handleApplyRevision("b1")}
+                        className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all active:scale-95 shadow-md ${
+                          appliedBullets["b1"]
+                            ? "bg-[#6bde80] text-[#003913]"
+                            : "bg-[#c0c1ff] text-[#292b5e] hover:bg-[#e1dfff] shadow-[0_0_12px_rgba(192,193,255,0.3)]"
+                        }`}
                       >
-                        <span className="material-symbols-outlined text-sm">check</span>
-                        <span>Apply Revision</span>
+                        <span className="material-symbols-outlined text-sm">
+                          {appliedBullets["b1"] ? "done" : "auto_fix_high"}
+                        </span>
+                        <span>{appliedBullets["b1"] ? "Applied" : "Apply Revision"}</span>
                       </button>
                     </div>
                   </div>
@@ -395,11 +457,17 @@ export default function ResumeScannerPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => showToast("Applied revision to active profile!")}
-                        className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#c0c1ff] text-[#292b5e] font-[500] hover:bg-[#e1dfff] transition-all shadow-[0_0_12px_rgba(192,193,255,0.3)]"
+                        onClick={() => handleApplyRevision("b2")}
+                        className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all active:scale-95 shadow-md ${
+                          appliedBullets["b2"]
+                            ? "bg-[#6bde80] text-[#003913]"
+                            : "bg-[#c0c1ff] text-[#292b5e] hover:bg-[#e1dfff] shadow-[0_0_12px_rgba(192,193,255,0.3)]"
+                        }`}
                       >
-                        <span className="material-symbols-outlined text-sm">check</span>
-                        <span>Apply Revision</span>
+                        <span className="material-symbols-outlined text-sm">
+                          {appliedBullets["b2"] ? "done" : "auto_fix_high"}
+                        </span>
+                        <span>{appliedBullets["b2"] ? "Applied" : "Apply Revision"}</span>
                       </button>
                     </div>
                   </div>

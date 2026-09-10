@@ -101,7 +101,7 @@ const SESSIONS = [
 export default function DashboardOverviewPage() {
   return (
     <div className="flex flex-col w-full">
-      <div className="px-6 py-8 flex flex-col gap-8 max-w-[1440px] mx-auto w-full">
+      <div className="px-4 sm:px-6 py-4 sm:py-8 flex flex-col gap-6 sm:gap-8 max-w-[1440px] mx-auto w-full">
 
         {/* header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
@@ -112,14 +112,21 @@ export default function DashboardOverviewPage() {
                 Telemetry Hub / Live Candidate Vector
               </span>
             </div>
-            <h1 className="text-[32px] leading-[40px] font-[600] tracking-[-0.015em] text-[#e4e1ed] flex items-center gap-2 flex-wrap">
-              Engineering Readiness Pulse
-              <span className="bg-[#292932] text-[#e1dfff] px-2 py-0.5 rounded-full text-[12px] leading-[16px] font-[400]">
-                Q2 Target Cycle
-              </span>
-            </h1>
+            <div className="flex items-center justify-between gap-2">
+              <h1 className="text-[24px] sm:text-[32px] leading-[32px] sm:leading-[40px] font-[600] tracking-[-0.015em] text-[#e4e1ed] flex items-center gap-2 flex-wrap">
+                Engineering Readiness
+                <span className="hidden sm:inline-block bg-[#292932] text-[#e1dfff] px-2 py-0.5 rounded-full text-[12px] leading-[16px] font-[400]">
+                  Q2 Target Cycle
+                </span>
+              </h1>
+              {/* mobile faang ready badge */}
+              <div className="flex sm:hidden items-center gap-1.5 px-3 py-1 rounded-full bg-[#6bde80]/15 text-[#6bde80] shadow-[0_0_12px_rgba(107,222,128,0.25)] flex-shrink-0">
+                <span className="w-2 h-2 rounded-full bg-[#6bde80] animate-pulse" />
+                <span className="text-[10px] font-semibold tracking-wide uppercase">FAANG Ready</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 self-start md:self-auto">
+          <div className="hidden sm:flex items-center gap-2 self-start md:self-auto">
             <span className="text-[12px] leading-[18px] text-[#918f9a]">Last algorithmic sync:</span>
             <span className="bg-[#1f1f27] px-2 py-1 rounded-lg text-[#6bde80] text-[12px] leading-[16px] font-[600]">
               2 mins ago
@@ -128,14 +135,14 @@ export default function DashboardOverviewPage() {
         </div>
 
         {/* readiness card */}
-        <div className="relative bg-[#1b1b23]/90 backdrop-blur-xl rounded-xl p-6 lg:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.45)] overflow-hidden">
+        <div className="relative bg-[#1b1b23]/90 backdrop-blur-xl rounded-xl p-4 sm:p-6 lg:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.45)] overflow-hidden">
           {/* ambient glow */}
           <div className="absolute -top-24 -left-24 w-80 h-80 bg-[#c0c1ff]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 right-1/4 w-96 h-96 bg-[#6bde80]/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
             {/* radial gauge */}
-            <div className="lg:col-span-5 flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center justify-center gap-8 bg-[#0d0d15]/80 p-6 rounded-xl shadow-inner">
+            <div className="lg:col-span-5 flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center justify-center gap-6 sm:gap-8 bg-[#0d0d15]/80 p-5 sm:p-6 rounded-xl shadow-inner">
               <div className="relative flex items-center justify-center flex-shrink-0">
                 <ScoreGauge score={84} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
@@ -154,26 +161,31 @@ export default function DashboardOverviewPage() {
               </div>
 
               {/* tier stats */}
-              <div className="flex flex-col items-center sm:items-start lg:items-center xl:items-start gap-3 text-center sm:text-left lg:text-center xl:text-left">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6bde80]/15 text-[#6bde80] shadow-[0_0_16px_rgba(107,222,128,0.25)]">
+              <div className="flex flex-col items-center sm:items-start lg:items-center xl:items-start gap-3 text-center sm:text-left lg:text-center xl:text-left w-full sm:w-auto">
+                <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6bde80]/15 text-[#6bde80] shadow-[0_0_16px_rgba(107,222,128,0.25)]">
                   <span className="material-symbols-outlined text-base">verified</span>
                   <span className="text-[12px] leading-[16px] font-[600] tracking-wider uppercase">FAANG Ready</span>
                 </div>
-                <div className="flex flex-col">
+                <div className="hidden sm:flex flex-col">
                   <span className="text-[18px] leading-[26px] font-[600] text-[#e4e1ed]">Tier 1 Target Reachable</span>
                   <p className="text-[12px] leading-[18px] text-[#918f9a] mt-0.5">
                     Ranked in the <span className="text-[#e1dfff] font-semibold">Top 4% of Candidates</span> across Meta, Apple, Amazon, Netflix, and Google telemetry benchmarks.
                   </p>
                 </div>
-                <div className="flex items-center gap-3 pt-1">
-                  <div className="flex flex-col">
+                <div className="grid grid-cols-2 w-full gap-2 pt-1">
+                  <div className="flex flex-col items-center sm:items-start p-2.5 sm:p-0 rounded-lg bg-[#1f1f27]/50 sm:bg-transparent">
                     <span className="text-[10px] leading-[14px] font-[600] tracking-[0.06em] uppercase text-[#918f9a]">Global Rank</span>
-                    <span className="text-[16px] leading-[24px] font-[500] text-[#e4e1ed] font-semibold">#1,482</span>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="material-symbols-outlined text-[16px] text-[#ffb867]">military_tech</span>
+                      <span className="text-[16px] leading-[24px] font-[500] text-[#e4e1ed] font-semibold">#1,482</span>
+                    </div>
                   </div>
-                  <div className="w-px h-6 bg-[#46464f]/40" />
-                  <div className="flex flex-col">
+                  <div className="flex flex-col items-center sm:items-start p-2.5 sm:p-0 rounded-lg bg-[#1f1f27]/50 sm:bg-transparent">
                     <span className="text-[10px] leading-[14px] font-[600] tracking-[0.06em] uppercase text-[#918f9a]">Confidence</span>
-                    <span className="text-[16px] leading-[24px] font-[500] text-[#6bde80] font-semibold">97.8%</span>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="material-symbols-outlined text-[16px] text-[#c0c1ff]">verified</span>
+                      <span className="text-[16px] leading-[24px] font-[500] text-[#6bde80] font-semibold">97.8%</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -228,8 +240,26 @@ export default function DashboardOverviewPage() {
           </div>
         </div>
 
-        {/* action toolbar */}
-        <div className="flex flex-wrap items-center gap-3 bg-[#1f1f27]/80 backdrop-blur-md p-3 rounded-xl shadow-lg">
+        {/* mobile quick actions (stitch mobile: grid-cols-2) */}
+        <div className="grid grid-cols-2 gap-3 lg:hidden">
+          <Link
+            href="/dashboard/github"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#292932] hover:bg-[#34343d] text-[#e4e1ed] text-[14px] leading-[22px] font-medium transition-colors shadow-sm active:scale-95"
+          >
+            <span className="material-symbols-outlined text-[18px] text-[#6bde80]">sync</span>
+            <span className="truncate">Sync GitHub</span>
+          </Link>
+          <Link
+            href="/dashboard/resume"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#292932] hover:bg-[#34343d] text-[#e4e1ed] text-[14px] leading-[22px] font-medium transition-colors shadow-sm active:scale-95"
+          >
+            <span className="material-symbols-outlined text-[18px] text-[#c0c1ff]">upload_file</span>
+            <span className="truncate">Upload Resume</span>
+          </Link>
+        </div>
+
+        {/* desktop action toolbar */}
+        <div className="hidden lg:flex flex-wrap items-center gap-3 bg-[#1f1f27]/80 backdrop-blur-md p-3 rounded-xl shadow-lg">
           {/* primary action */}
           <Link
             href="/dashboard/interviews"

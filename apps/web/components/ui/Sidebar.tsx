@@ -2,15 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { DevMetricLogo } from "@/components/ui/DevMetricLogo";
 
 const NAV_ITEMS = [
-  { icon: "grid_view",        label: "Overview",          href: "/dashboard" },
-  { icon: "terminal",         label: "GitHub Analytics",  href: "/dashboard/github" },
-  { icon: "code_blocks",      label: "LeetCode Metrics",  href: "/dashboard/leetcode" },
-  { icon: "document_scanner", label: "Resume Scanner",    href: "/dashboard/resume" },
-  { icon: "mic",              label: "Mock Interviews",   href: "/dashboard/interviews" },
-  { icon: "verified",         label: "Hiring Readiness",  href: "/dashboard/hiring" },
-  { icon: "settings",         label: "Settings",          href: "/dashboard/settings" },
+  { icon: "grid_view", label: "Overview", href: "/dashboard" },
+  { icon: "terminal", label: "GitHub Analytics", href: "/dashboard/github" },
+  {
+    icon: "code_blocks",
+    label: "LeetCode Metrics",
+    href: "/dashboard/leetcode",
+  },
+  {
+    icon: "document_scanner",
+    label: "Resume Scanner",
+    href: "/dashboard/resume",
+  },
+  { icon: "mic", label: "Mock Interviews", href: "/dashboard/interviews" },
+  { icon: "verified", label: "Hiring Readiness", href: "/dashboard/hiring" },
+  {
+    icon: "credit_card",
+    label: "Payment / Checkout",
+    href: "/dashboard/payment",
+  },
+  { icon: "settings", label: "Settings", href: "/dashboard/settings" },
 ] as const;
 
 export function Sidebar() {
@@ -22,29 +36,15 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-[#1b1b23]/90 backdrop-blur-xl z-50 flex flex-col justify-between shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
+    <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-[#1b1b23]/90 backdrop-blur-xl z-50 flex-col justify-between shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
       {/* brand & navigation */}
       <div className="flex flex-col">
         {/* logo */}
-        <div className="h-16 px-6 flex items-center gap-3">
-          {/* shield icon */}
-          <svg className="h-8 w-8 flex-shrink-0" viewBox="0 0 48 48" fill="none">
-            <path
-              d="M24 4L6 12v12c0 10.5 7.7 20.4 18 23 10.3-2.6 18-12.5 18-23V12L24 4z"
-              fill="#c0c1ff"
-              fillOpacity="0.15"
-              stroke="#c0c1ff"
-              strokeWidth="2"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M17 24l5 5 9-9"
-              stroke="#6bde80"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+        <Link
+          href="/dashboard"
+          className="h-16 px-6 flex items-center gap-3 focus:outline-none"
+        >
+          <DevMetricLogo size={32} className="flex-shrink-0" />
           <div className="flex flex-col">
             <span className="text-[16px] leading-6 font-[500] text-[#e1dfff] tracking-tight font-sora">
               DevMetric
@@ -53,7 +53,7 @@ export function Sidebar() {
               Intelligence OS
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* telemetry badge */}
         <div className="px-3 py-1.5">
@@ -65,7 +65,7 @@ export function Sidebar() {
               </span>
             </div>
             <span className="text-[10px] leading-[14px] font-[600] tracking-[0.06em] text-[#918f9a]">
-              v3.4.1
+              v1.0.0
             </span>
           </div>
         </div>
@@ -81,15 +81,18 @@ export function Sidebar() {
                 aria-current={active ? "page" : undefined}
                 className={`
                   flex items-center gap-3 px-3 py-2 rounded-lg transition-all group
-                  ${active
-                    ? "bg-[#292932] text-[#e1dfff] font-bold shadow-[0_0_20px_rgba(192,193,255,0.15)]"
-                    : "text-[#c7c5d0] text-[14px] font-[400] hover:bg-[#292932] hover:text-[#e4e1ed]"
+                  ${
+                    active
+                      ? "bg-[#292932] text-[#e1dfff] font-bold shadow-[0_0_20px_rgba(192,193,255,0.15)]"
+                      : "text-[#c7c5d0] text-[14px] font-[400] hover:bg-[#292932] hover:text-[#e4e1ed]"
                   }
                 `}
               >
                 <span
                   className={`material-symbols-outlined text-xl transition-colors ${
-                    active ? "text-[#c0c1ff]" : "text-[#918f9a] group-hover:text-[#c0c1ff]"
+                    active
+                      ? "text-[#c0c1ff]"
+                      : "text-[#918f9a] group-hover:text-[#c0c1ff]"
                   }`}
                 >
                   {item.icon}
@@ -112,7 +115,9 @@ export function Sidebar() {
               Cloud Matrix v4
             </span>
           </div>
-          <span className="material-symbols-outlined text-[#6bde80] text-base">cloud_done</span>
+          <span className="material-symbols-outlined text-[#6bde80] text-base">
+            cloud_done
+          </span>
         </div>
       </div>
     </aside>

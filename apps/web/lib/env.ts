@@ -22,6 +22,10 @@ export const env = createEnv({
     // redis / kv
     KV_REST_API_URL: z.string().url(),
     KV_REST_API_TOKEN: z.string().min(1),
+    // qstash
+    QSTASH_TOKEN: z.string().min(1),
+    QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
+    QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
     GROQ_API_KEY: z.string().min(1),
     GEMINI_API_KEY: z.string().min(1),
     CRON_SECRET: z.string().min(32),
@@ -42,6 +46,9 @@ export const env = createEnv({
     JWT_SECRET: process.env.JWT_SECRET,
     KV_REST_API_URL: process.env.KV_REST_API_URL,
     KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN,
+    QSTASH_TOKEN: process.env.QSTASH_TOKEN,
+    QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
+    QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
     GROQ_API_KEY: process.env.GROQ_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     CRON_SECRET: process.env.CRON_SECRET,

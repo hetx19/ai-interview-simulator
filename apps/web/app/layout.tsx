@@ -25,7 +25,11 @@ export const metadata: Metadata = {
   title: "DevMetric — Engineering Intelligence OS",
   description:
     "Your hiring readiness, quantified. AI-powered GitHub analytics, LeetCode tracking, resume scanning, and mock interview intelligence.",
-  icons: { icon: "/favicon.ico" },
+  icons: {
+    icon: "/favicon.ico?v=2",
+    shortcut: "/favicon.ico?v=2",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({
@@ -40,10 +44,7 @@ export default function RootLayout({
     >
       <head>
         {/* material symbols font */}
-        <link
-          rel="preconnect"
-          href="https://fonts.googleapis.com"
-        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"

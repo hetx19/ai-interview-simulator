@@ -198,20 +198,21 @@ export default function LandingPage() {
             </div>
 
             {/* nav links */}
+
             <nav className="hidden lg:flex items-center gap-space-xs px-space-sm py-space-2xs rounded-full bg-surface-container-low/70">
-              <a
-                href="#features"
-                onClick={(e) => handleNavClick(e, "features")}
-                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm cursor-pointer"
-              >
-                Features
-              </a>
               <a
                 href="#benchmarks"
                 onClick={(e) => handleNavClick(e, "benchmarks")}
                 className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm cursor-pointer"
               >
                 Benchmarks
+              </a>
+              <a
+                href="#features"
+                onClick={(e) => handleNavClick(e, "features")}
+                className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high px-space-md py-space-xs rounded-full transition-all text-body-sm font-body-sm cursor-pointer"
+              >
+                Features
               </a>
               <a
                 href="#intelligence-engine"
@@ -1171,7 +1172,7 @@ export default function LandingPage() {
                         <br />
                         &nbsp;&nbsp;
                         <span className="text-outline-variant">
-                          // audio latency: 42ms, clarity: 98%
+                          {"// audio latency: 42ms, clarity: 98%"}
                         </span>
                         <br />
                         &#125;;

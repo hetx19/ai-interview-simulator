@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  serverExternalPackages: ["pg", "@prisma/client", "prisma"],
+  serverExternalPackages: ["pg", "@prisma/client", "prisma", "pino", "@upstash/qstash"],
 };
 
 export default nextConfig;
