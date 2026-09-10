@@ -25,3 +25,25 @@ export interface GraphQLContext {
   correlationId: string;
   logger: Logger;
 }
+
+export interface GitHubProfileGql {
+  id: string;
+  githubUsername: string;
+  githubScore: number | null;
+  repoHealthScore: number | null;
+  openSourceScore: number | null;
+  totalRepos: number;
+  totalStars: number;
+  totalCommitsYear: number;
+  languageDistribution: Record<string, any> | null;
+  contributionCalendar: Record<string, any> | null;
+  topRepos: Record<string, any>[] | null;
+  recommendations: string[];
+  lastSyncedAt: Date | null;
+}
+
+export interface SyncJobResponseGql {
+  jobId: string;
+  status: string;
+  message: string;
+}

@@ -13,6 +13,28 @@ export const typeDefs = /* GraphQL */ `
     createdAt: DateTime!
   }
 
+  type GitHubProfile {
+    id: ID!
+    githubUsername: String!
+    githubScore: Int
+    repoHealthScore: Int
+    openSourceScore: Int
+    totalRepos: Int!
+    totalStars: Int!
+    totalCommitsYear: Int!
+    languageDistribution: JSON
+    contributionCalendar: JSON
+    topRepos: JSON
+    recommendations: [String!]!
+    lastSyncedAt: DateTime
+  }
+
+  type SyncJobResponse {
+    jobId: String!
+    status: String!
+    message: String!
+  }
+
   type AppError {
     code: String!
     message: String!
@@ -22,5 +44,10 @@ export const typeDefs = /* GraphQL */ `
 
   type Query {
     me: User
+    githubProfile: GitHubProfile
+  }
+
+  type Mutation {
+    syncGitHub: SyncJobResponse!
   }
 `;
