@@ -43,6 +43,9 @@ permissions:
   pull-requests: write
   packages: write
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+
 # Prevent overlapping deployments to the same environment while allowing separate environments to deploy concurrently
 concurrency:
   group: cd-${{ github.workflow }}-${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'preview') }}
