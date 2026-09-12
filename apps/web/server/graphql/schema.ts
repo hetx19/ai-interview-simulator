@@ -49,6 +49,6 @@ export const typeDefs = /* GraphQL */ `
   }
 
   type Mutation {
-    syncGitHub: SyncJobResponse!
+    syncGitHub(force: Boolean): SyncJobResponse!
   }
 `;

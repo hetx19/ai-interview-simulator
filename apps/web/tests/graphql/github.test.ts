@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 import { db } from '@/lib/prisma';
 import { POST } from '@/app/api/graphql/route';
 import { getServerSession } from 'next-auth/next';
+import { gitHubApiClient } from '@/server/external/GitHubApiClient';
+import { encryptToken } from '@/server/auth/encryption';
+import { AppError } from '@/server/graphql/errors';
 import crypto from 'node:crypto';
 
 vi.mock('next-auth/next', () => ({
@@ -27,6 +30,15 @@ describe('GraphQL GitHub Analytics (githubProfile & syncGitHub)', () => {
       select: { id: true, email: true },
     });
 
+    await db.account.create({
+      data: {
+        userId: user.id,
+        provider: 'github',
+        providerAccountId: `gh-${runId}`,
+        accessToken: encryptToken('gho_dummy_valid_token'),
+      },
+    });
+
     await db.githubProfile.create({
       data: {
         userId: user.id,
@@ -39,7 +51,7 @@ describe('GraphQL GitHub Analytics (githubProfile & syncGitHub)', () => {
         totalForks: 30,
         totalCommitsYear: 450,
         recommendations: ['Keep up the great work!'],
-        lastSyncedAt: new Date(),
+        lastSyncedAt: new Date(Date.now() - 25 * 60 * 60 * 1000), // 25 hours ago
       },
     });
   });
@@ -47,12 +59,14 @@ describe('GraphQL GitHub Analytics (githubProfile & syncGitHub)', () => {
   afterAll(async () => {
     if (user?.id) {
       await db.githubProfile.deleteMany({ where: { userId: user.id } });
+      await db.account.deleteMany({ where: { userId: user.id } });
       await db.user.deleteMany({ where: { id: user.id } });
     }
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(gitHubApiClient, 'getUserProfile').mockResolvedValue({ login: 'octocat' } as any);
   });
 
   it('1. Returns UNAUTHENTICATED when requesting githubProfile without session', async () => {
@@ -117,7 +131,7 @@ describe('GraphQL GitHub Analytics (githubProfile & syncGitHub)', () => {
     expect(json.errors[0]?.extensions?.code).toBe('UNAUTHENTICATED');
   });
 
-  it('4. Successfully triggers syncGitHub mutation for authenticated session', async () => {
+  it('4. Successfully triggers syncGitHub mutation for authenticated session when cooldown elapsed', async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce({
       user: { id: user.id, email: user.email },
     } as any);
@@ -139,5 +153,101 @@ describe('GraphQL GitHub Analytics (githubProfile & syncGitHub)', () => {
       status: 'QUEUED',
       message: 'GitHub synchronization job queued successfully',
     });
+  });
+
+  it('5. Returns RATE_LIMITED when syncGitHub is invoked within 24-hour cooldown', async () => {
+    // Update lastSyncedAt to 1 hour ago
+    await db.githubProfile.update({
+      where: { userId: user.id },
+      data: { lastSyncedAt: new Date(Date.now() - 60 * 60 * 1000) },
+    });
+
+    vi.mocked(getServerSession).mockResolvedValueOnce({
+      user: { id: user.id, email: user.email },
+    } as any);
+
+    const request = new Request('http://localhost:3000/api/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: 'mutation { syncGitHub { jobId status message } }',
+      }),
+    });
+
+    const response = await POST(request);
+    const json = await response.json();
+
+    expect(json.errors).toBeDefined();
+    expect(json.errors[0]?.extensions?.code).toBe('RATE_LIMITED');
+    expect(json.errors[0]?.message).toContain('once every 24 hours');
+  });
+
+  it('6. Allows force sync even when within 24-hour cooldown', async () => {
+    vi.mocked(getServerSession).mockResolvedValueOnce({
+      user: { id: user.id, email: user.email },
+    } as any);
+
+    const request = new Request('http://localhost:3000/api/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: 'mutation { syncGitHub(force: true) { jobId status message } }',
+      }),
+    });
+
+    const response = await POST(request);
+    const json = await response.json();
+
+    expect(json.errors).toBeUndefined();
+    expect(json.data?.syncGitHub).toMatchObject({
+      status: 'QUEUED',
+    });
+  });
+
+  it('7. Returns UNAUTHENTICATED when user has no linked GitHub account', async () => {
+    const unlinkedUserId = crypto.randomUUID();
+    vi.mocked(getServerSession).mockResolvedValueOnce({
+      user: { id: unlinkedUserId, email: 'unlinked@example.com' },
+    } as any);
+
+    const request = new Request('http://localhost:3000/api/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: 'mutation { syncGitHub { jobId status message } }',
+      }),
+    });
+
+    const response = await POST(request);
+    const json = await response.json();
+
+    expect(json.errors).toBeDefined();
+    expect(json.errors[0]?.extensions?.code).toBe('UNAUTHENTICATED');
+    expect(json.errors[0]?.message).toContain('No GitHub account connected');
+  });
+
+  it('8. Returns UNAUTHENTICATED with reconnect prompt when GitHub token is expired/revoked', async () => {
+    vi.mocked(getServerSession).mockResolvedValueOnce({
+      user: { id: user.id, email: user.email },
+    } as any);
+
+    vi.spyOn(gitHubApiClient, 'getUserProfile').mockRejectedValueOnce(
+      new AppError('UNAUTHENTICATED', 'GitHub token expired or invalid'),
+    );
+
+    const request = new Request('http://localhost:3000/api/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: 'mutation { syncGitHub { jobId status message } }',
+      }),
+    });
+
+    const response = await POST(request);
+    const json = await response.json();
+
+    expect(json.errors).toBeDefined();
+    expect(json.errors[0]?.extensions?.code).toBe('UNAUTHENTICATED');
+    expect(json.errors[0]?.message).toContain('GitHub authorization expired or was revoked');
   });
 });

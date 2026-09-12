@@ -1,6 +1,6 @@
-import { AppError } from '@/server/graphql/errors';
-import { logger } from '@/server/logging/logger';
-import { getCorrelationId } from '@/server/logging/correlationStore';
+import { AppError } from "@/server/graphql/errors";
+import { logger } from "@/server/logging/logger";
+import { getCorrelationId } from "@/server/logging/correlationStore";
 
 export interface GitHubUserProfile {
   id: number;
@@ -29,6 +29,7 @@ export interface GitHubRepo {
   updatedAt: string;
   size: number;
   isInactive: boolean;
+  isPrivate: boolean;
   htmlUrl: string;
   description: string | null;
   license: string | null;
@@ -56,7 +57,7 @@ export interface ContributionCalendar {
 export class GitHubApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl = 'https://api.github.com') {
+  constructor(baseUrl = "https://api.github.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -73,29 +74,48 @@ export class GitHubApiClient {
         const res = await fetch(url, options);
 
         if (res.status === 401) {
-          throw new AppError('UNAUTHENTICATED', 'GitHub token expired or invalid');
+          throw new AppError(
+            "UNAUTHENTICATED",
+            "GitHub authorization has expired or was revoked. Please reconnect your GitHub account.",
+          );
         }
 
         if (res.status === 403) {
-          const remaining = res.headers.get('x-ratelimit-remaining');
-          if (remaining === '0') {
-            const resetHeader = res.headers.get('x-ratelimit-reset');
+          const remaining = res.headers.get("x-ratelimit-remaining");
+          if (remaining === "0") {
+            const resetHeader = res.headers.get("x-ratelimit-reset");
             throw new AppError(
-              'RATE_LIMITED',
-              `GitHub API rate limit exceeded. Reset at ${resetHeader ? new Date(Number(resetHeader) * 1000).toISOString() : 'unknown'}`,
+              "RATE_LIMITED",
+              `GitHub API rate limit exceeded. Reset at ${resetHeader ? new Date(Number(resetHeader) * 1000).toISOString() : "unknown"}`,
             );
           }
-          const bodyText = await res.text().catch(() => '');
-          if (bodyText.includes('rate limit')) {
-            throw new AppError('RATE_LIMITED', 'GitHub API rate limit exceeded');
+          const bodyText = await res.text().catch(() => "");
+          if (bodyText.includes("rate limit")) {
+            throw new AppError(
+              "RATE_LIMITED",
+              "GitHub API rate limit exceeded",
+            );
           }
-          throw new AppError('FORBIDDEN', 'GitHub API access forbidden');
+          throw new AppError("FORBIDDEN", "GitHub API access forbidden");
+        }
+
+        if (res.status === 404) {
+          throw new AppError("NOT_FOUND", "GitHub resource not found");
+        }
+
+        if (res.status === 429) {
+          throw new AppError("RATE_LIMITED", "GitHub API rate limit exceeded");
         }
 
         if (res.status >= 500 && attempt < retries) {
           logger.warn(
-            { url, status: res.status, attempt, correlationId: getCorrelationId() },
-            'GitHub API 5xx, retrying with exponential backoff',
+            {
+              url,
+              status: res.status,
+              attempt,
+              correlationId: getCorrelationId(),
+            },
+            "GitHub API 5xx, retrying with exponential backoff",
           );
           await new Promise((resolve) =>
             setTimeout(resolve, backoffMs * Math.pow(2, attempt - 1)),
@@ -105,7 +125,7 @@ export class GitHubApiClient {
 
         if (!res.ok) {
           throw new AppError(
-            'INTERNAL_ERROR',
+            "INTERNAL_ERROR",
             `GitHub API returned error ${res.status}: ${res.statusText}`,
           );
         }
@@ -118,7 +138,7 @@ export class GitHubApiClient {
         if (attempt < retries) {
           logger.warn(
             { url, attempt, error, correlationId: getCorrelationId() },
-            'GitHub API network error, retrying',
+            "GitHub API network error, retrying",
           );
           await new Promise((resolve) =>
             setTimeout(resolve, backoffMs * Math.pow(2, attempt - 1)),
@@ -126,8 +146,8 @@ export class GitHubApiClient {
           continue;
         }
         throw new AppError(
-          'INTERNAL_ERROR',
-          `GitHub API request failed after ${attempt} attempts: ${error instanceof Error ? error.message : 'unknown error'}`,
+          "INTERNAL_ERROR",
+          `GitHub API request failed after ${attempt} attempts: ${error instanceof Error ? error.message : "unknown error"}`,
         );
       }
     }
@@ -137,8 +157,8 @@ export class GitHubApiClient {
     const res = await this.fetchWithRetry(`${this.baseUrl}/user`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'DevMetric-App',
+        Accept: "application/vnd.github+json",
+        "User-Agent": "DevMetric-App",
       },
     });
 
@@ -157,14 +177,25 @@ export class GitHubApiClient {
     };
   }
 
+  /**
+   * Limits pagination to 10 pages of 100 repositories each (1,000 repos max).
+   * This should cover the vast majority of active developers while keeping
+   * network requests, memory usage, and GitHub API rate-limit usage reasonable.
+   **/
+  public static readonly MAX_PAGINATION_PAGES = 10;
+
   public async getRepositories(
     token: string,
     perPage = 100,
-    options?: { filterForks?: boolean; maxPages?: number },
+    options?: {
+      filterForks?: boolean;
+      excludePrivate?: boolean;
+      maxPages?: number;
+    },
   ): Promise<GitHubRepo[]> {
     const allRepos: GitHubRepo[] = [];
     let page = 1;
-    const maxPages = options?.maxPages ?? 10;
+    const maxPages = options?.maxPages ?? GitHubApiClient.MAX_PAGINATION_PAGES;
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
@@ -173,8 +204,8 @@ export class GitHubApiClient {
       const res = await this.fetchWithRetry(url, {
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github+json',
-          'User-Agent': 'DevMetric-App',
+          Accept: "application/vnd.github+json",
+          "User-Agent": "DevMetric-App",
         },
       });
 
@@ -188,13 +219,19 @@ export class GitHubApiClient {
           continue;
         }
 
-        const isInactive = !r.pushed_at || new Date(r.pushed_at) < twelveMonthsAgo;
+        const isPrivate = Boolean(r.private);
+        if (options?.excludePrivate && isPrivate) {
+          continue;
+        }
+
+        const isInactive =
+          !r.pushed_at || new Date(r.pushed_at) < twelveMonthsAgo;
 
         allRepos.push({
           id: r.id,
           name: r.name,
           fullName: r.full_name,
-          owner: r.owner?.login ?? '',
+          owner: r.owner?.login ?? "",
           stars: r.stargazers_count ?? 0,
           forks: r.forks_count ?? 0,
           isFork: !!r.fork,
@@ -204,7 +241,8 @@ export class GitHubApiClient {
           updatedAt: r.updated_at,
           size: r.size ?? 0,
           isInactive,
-          htmlUrl: r.html_url ?? '',
+          isPrivate,
+          htmlUrl: r.html_url ?? "",
           description: r.description ?? null,
           license: r.license?.spdx_id ?? null,
         });
@@ -228,8 +266,8 @@ export class GitHubApiClient {
     const res = await this.fetchWithRetry(url, {
       headers: {
         Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'DevMetric-App',
+        Accept: "application/vnd.github+json",
+        "User-Agent": "DevMetric-App",
       },
     });
 
@@ -248,6 +286,146 @@ export class GitHubApiClient {
       week: week.week ?? 0,
       days: Array.isArray(week.days) ? week.days : [],
     }));
+  }
+
+  /**
+   * Dedicated GraphQL v4 client method.
+   * GraphQL v4 operates under a distinct rate limit budget and returns error arrays
+   * inside standard HTTP 200 responses.
+   */
+  private async fetchGraphQLWithRetry<T = any>(
+    token: string,
+    query: string,
+    variables: Record<string, any>,
+    retries = 3,
+    backoffMs = 100,
+  ): Promise<T> {
+    const graphqlUrl = this.baseUrl.endsWith("/graphql")
+      ? this.baseUrl
+      : `${this.baseUrl.replace(/\/$/, "")}/graphql`;
+
+    let attempt = 0;
+    while (true) {
+      attempt++;
+      try {
+        const res = await fetch(graphqlUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            "User-Agent": "DevMetric-App",
+          },
+          body: JSON.stringify({ query, variables }),
+        });
+
+        if (res.status === 401) {
+          throw new AppError(
+            "UNAUTHENTICATED",
+            "GitHub token expired or invalid",
+          );
+        }
+
+        if (res.status === 403) {
+          const remaining = res.headers.get("x-ratelimit-remaining");
+          if (remaining === "0") {
+            const resetHeader = res.headers.get("x-ratelimit-reset");
+            throw new AppError(
+              "RATE_LIMITED",
+              `GitHub GraphQL API rate limit exceeded. Reset at ${resetHeader ? new Date(Number(resetHeader) * 1000).toISOString() : "unknown"}`,
+            );
+          }
+          const bodyText = await res.text().catch(() => "");
+          if (bodyText.includes("rate limit")) {
+            throw new AppError(
+              "RATE_LIMITED",
+              "GitHub GraphQL API rate limit exceeded",
+            );
+          }
+          throw new AppError(
+            "FORBIDDEN",
+            "GitHub GraphQL API access forbidden",
+          );
+        }
+
+        if (res.status >= 500 && attempt < retries) {
+          logger.warn(
+            {
+              url: graphqlUrl,
+              status: res.status,
+              attempt,
+              correlationId: getCorrelationId(),
+            },
+            "GitHub GraphQL API 5xx, retrying with exponential backoff",
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, backoffMs * Math.pow(2, attempt - 1)),
+          );
+          continue;
+        }
+
+        if (!res.ok) {
+          throw new AppError(
+            "INTERNAL_ERROR",
+            `GitHub GraphQL API returned HTTP ${res.status}: ${res.statusText}`,
+          );
+        }
+
+        const json = await res.json();
+
+        // GraphQL returns errors in json.errors even with HTTP 200
+        if (
+          json.errors &&
+          Array.isArray(json.errors) &&
+          json.errors.length > 0
+        ) {
+          for (const err of json.errors) {
+            const msg = (err.message || "").toLowerCase();
+            if (
+              err.type === "RATE_LIMITED" ||
+              msg.includes("rate limit") ||
+              msg.includes("secondary rate")
+            ) {
+              throw new AppError(
+                "RATE_LIMITED",
+                "GitHub GraphQL API rate limit exceeded",
+              );
+            }
+            if (
+              msg.includes("bad credentials") ||
+              msg.includes("could not resolve to a user")
+            ) {
+              if (msg.includes("bad credentials")) {
+                throw new AppError(
+                  "UNAUTHENTICATED",
+                  "GitHub token expired or invalid",
+                );
+              }
+            }
+          }
+        }
+
+        return json?.data as T;
+      } catch (error) {
+        if (error instanceof AppError) {
+          throw error;
+        }
+        if (attempt < retries) {
+          logger.warn(
+            { attempt, error, correlationId: getCorrelationId() },
+            "GitHub GraphQL network error, retrying",
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, backoffMs * Math.pow(2, attempt - 1)),
+          );
+          continue;
+        }
+        throw new AppError(
+          "INTERNAL_ERROR",
+          `GitHub GraphQL request failed after ${attempt} attempts: ${error instanceof Error ? error.message : "unknown error"}`,
+        );
+      }
+    }
   }
 
   public async getContributionCalendar(
@@ -273,24 +451,20 @@ export class GitHubApiClient {
       }
     `;
 
-    const graphqlUrl = this.baseUrl.endsWith('/graphql')
-      ? this.baseUrl
-      : `${this.baseUrl.replace(/\/$/, '')}/graphql`;
+    const data = await this.fetchGraphQLWithRetry<{
+      user?: {
+        contributionsCollection?: {
+          contributionCalendar?: {
+            totalContributions?: number;
+            weeks?: Array<{
+              contributionDays: ContributionDay[];
+            }>;
+          };
+        };
+      };
+    }>(token, query, { username });
 
-    const res = await this.fetchWithRetry(graphqlUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'User-Agent': 'DevMetric-App',
-      },
-      body: JSON.stringify({ query, variables: { username } }),
-    });
-
-    const json = await res.json();
-    const calendar =
-      json?.data?.user?.contributionsCollection?.contributionCalendar;
+    const calendar = data?.user?.contributionsCollection?.contributionCalendar;
 
     if (!calendar) {
       return {

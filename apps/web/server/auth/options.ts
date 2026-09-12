@@ -75,6 +75,11 @@ export const authOptions: AuthOptions = {
         provider: account?.provider ?? "",
         providerAccountId: account?.providerAccountId ?? "",
         isEmailVerified,
+        accessToken: account?.access_token,
+        refreshToken: account?.refresh_token,
+        expiresAt: account?.expires_at,
+        tokenType: account?.token_type,
+        scope: account?.scope,
       });
 
       if (!linkingResult.allowed) {

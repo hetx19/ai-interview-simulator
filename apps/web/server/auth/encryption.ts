@@ -19,9 +19,24 @@ function getKey(): Buffer {
   return Buffer.from(hex, "hex");
 }
 
+export function isEncryptedToken(token: string): boolean {
+  if (!token) return false;
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  const [ivHex, ciphertextHex, tagHex] = parts;
+  if (!ivHex || !ciphertextHex || !tagHex) return false;
+  if (ivHex.length !== IV_BYTES * 2 || tagHex.length !== TAG_BYTES * 2) return false;
+  return (
+    /^[0-9a-fA-F]+$/.test(ivHex) &&
+    /^[0-9a-fA-F]+$/.test(ciphertextHex) &&
+    /^[0-9a-fA-F]+$/.test(tagHex)
+  );
+}
+
 // encrypts string to iv.ciphertext.tag using aes-256-gcm
 export function encryptToken(plaintext: string): string {
   if (!plaintext) return plaintext;
+  if (isEncryptedToken(plaintext)) return plaintext;
   const key = getKey();
   const iv = randomBytes(IV_BYTES);
 

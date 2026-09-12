@@ -125,7 +125,21 @@ export class UserRepository extends BaseRepository {
 
   async deleteUser(targetUserId?: string): Promise<void> {
     const id = targetUserId ?? this.userId;
-    await this.db.user.delete({ where: { id } });
+    if (id !== this.userId) {
+      throw new AppError('FORBIDDEN', 'Access denied');
+    }
+    await this.db.user.delete({ where: { id: this.userId } });
+  }
+
+  async softDeleteUser(targetUserId?: string): Promise<void> {
+    const id = targetUserId ?? this.userId;
+    if (id !== this.userId) {
+      throw new AppError('FORBIDDEN', 'Access denied');
+    }
+    await this.db.user.update({
+      where: { id: this.userId },
+      data: { deletedAt: new Date() },
+    });
   }
 
   async deleteExpiredSessions(): Promise<number> {

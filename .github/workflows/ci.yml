@@ -1,0 +1,308 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feat/**'
+      - 'fix/**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.idea/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.idea/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CI: "true"
+  TURBO_TELEMETRY_DISABLED: "1"
+  NEXT_TELEMETRY_DISABLED: "1"
+  # Mock environment variables for build, test, and typecheck validations
+  DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
+  TEST_DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
+  NEXTAUTH_URL: "http://localhost:3000"
+  NEXTAUTH_SECRET: "ci-dummy-nextauth-secret-min-32-chars-long"
+  GITHUB_TOKEN_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  JWT_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  GITHUB_CLIENT_ID: "ci-mock-github-client-id"
+  GITHUB_CLIENT_SECRET: "ci-mock-github-client-secret"
+  GOOGLE_CLIENT_ID: "ci-mock-google-client-id"
+  GOOGLE_CLIENT_SECRET: "ci-mock-google-client-secret"
+  KV_REST_API_URL: "https://mock-redis.upstash.io"
+  KV_REST_API_TOKEN: "ci-mock-kv-token"
+  QSTASH_TOKEN: "ci-mock-qstash-token"
+  QSTASH_CURRENT_SIGNING_KEY: "sig_ci-mock-current-signing-key"
+  QSTASH_NEXT_SIGNING_KEY: "sig_ci-mock-next-signing-key"
+  NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+  CRON_SECRET: "ci-dummy-cron-secret-min-32-chars-long"
+
+jobs:
+  lint:
+    name: Code Quality & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-lint-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-lint-${{ hashFiles('**/package-lock.json') }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  typecheck:
+    name: Static Type Checking
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-typecheck-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-typecheck-${{ hashFiles('**/package-lock.json') }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate --workspace=web
+
+      - name: Run Typecheck
+        run: npm run typecheck
+
+  test:
+    name: Test Suite (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20.x', '22.x']
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: devmetric
+          POSTGRES_PASSWORD: devmetric
+          POSTGRES_DB: devmetric_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate --workspace=web
+
+      - name: Apply Database Migrations to Test DB
+        run: npm run prisma:migrate:deploy --workspace=web
+
+      - name: Seed Database ProblemBank
+        run: npm run prisma:seed --workspace=web
+
+      - name: Run Vitest Suite
+        run: npm run test
+
+  security-audit:
+    name: Security & Vulnerability Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Run Dependency Audit Report
+        run: |
+          echo "### 🛡️ Dependency Security Audit Report" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>Click to view npm audit output</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          npm audit --audit-level=high || true >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
+      - name: Dependency Review (Pull Requests)
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: critical
+        continue-on-error: true
+
+  build:
+    name: Production Build & Artifact Validation
+    needs:
+      - lint
+      - typecheck
+      - test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-build-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-build-${{ hashFiles('**/package-lock.json') }}-
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('apps/web/**/*.ts', 'apps/web/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate --workspace=web
+
+      - name: Build Next.js Monorepo Application
+        run: npm run build
+
+      - name: Validate Build Output
+        run: |
+          echo "### 📦 Build Artifact Verification" >> $GITHUB_STEP_SUMMARY
+          if [ ! -d "apps/web/.next" ]; then
+            echo "❌ apps/web/.next directory not found!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "✅ Production build completed successfully." >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls -la apps/web/.next >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Production Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: devmetric-production-build
+          path: |
+            apps/web/.next
+            !apps/web/.next/cache
+          retention-days: 7
+
+  docker-check:
+    name: Docker Container Validation
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Dockerfile Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
+          tags: devmetric-web:ci-validation
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  ci-status:
+    name: CI Status Gate
+    needs:
+      - lint
+      - typecheck
+      - test
+      - security-audit
+      - build
+      - docker-check
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify All CI Jobs Succeeded
+        run: |
+          results='${{ toJson(needs) }}'
+          echo "=== CI Jobs Summary ==="
+          echo "$results" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+
+          failures=$(echo "$results" | jq -r 'to_entries[] | select(.value.result != "success" and .value.result != "skipped") | .key')
+
+          if [ -n "$failures" ]; then
+            echo "::error::The following required CI jobs failed or were cancelled: $failures"
+            exit 1
+          fi
+
+          echo "✅ All CI checks passed successfully!"

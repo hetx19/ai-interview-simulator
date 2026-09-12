@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: devmetric-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: devmetric
+      POSTGRES_PASSWORD: devmetric
+      POSTGRES_DB: devmetric
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devmetric"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: devmetric-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://devmetric:devmetric@postgres:5432/devmetric
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -1,8 +1,13 @@
-import { requireAuth } from '../errors';
+import { requireAuth, AppError } from '../errors';
 import { GithubRepository } from '@/server/repositories/GithubRepository';
+import { GithubService } from '@/server/services/GithubService';
+import { gitHubApiClient } from '@/server/external/GitHubApiClient';
+import { getDecryptedAccessToken } from '@/server/auth/encryption';
 import { enqueueJob } from '@/server/queue/enqueueJob';
 import { JobType } from '@/server/queue/jobTypes';
 import type { GraphQLContext } from '@/types/graphql';
+
+import { refreshGitHubAccessToken } from '@/server/auth/tokenRefresh';
 
 export const githubResolvers = {
   Query: {
@@ -31,8 +36,53 @@ export const githubResolvers = {
     },
   },
   Mutation: {
-    syncGitHub: async (_parent: unknown, _args: unknown, ctx: GraphQLContext) => {
+    syncGitHub: async (
+      _parent: unknown,
+      args: { force?: boolean } = {},
+      ctx: GraphQLContext,
+    ) => {
       requireAuth(ctx);
+
+      const token = await getDecryptedAccessToken(ctx.user.id, 'github');
+      if (!token) {
+        throw new AppError(
+          'UNAUTHENTICATED',
+          'No GitHub account connected. Please connect your GitHub account to sync telemetry.',
+        );
+      }
+
+      // Proactively validate token against GitHub to catch expired/revoked credentials
+      try {
+        await gitHubApiClient.getUserProfile(token);
+      } catch (err: any) {
+        if (err instanceof AppError && err.code === 'UNAUTHENTICATED') {
+          const refreshedToken = await refreshGitHubAccessToken(ctx.user.id);
+          if (refreshedToken) {
+            try {
+              await gitHubApiClient.getUserProfile(refreshedToken);
+            } catch {
+              throw new AppError(
+                'UNAUTHENTICATED',
+                'GitHub authorization expired or was revoked. Please reconnect your GitHub account.',
+              );
+            }
+          } else {
+            throw new AppError(
+              'UNAUTHENTICATED',
+              'GitHub authorization expired or was revoked. Please reconnect your GitHub account.',
+            );
+          }
+        }
+        if (err instanceof AppError && err.code === 'RATE_LIMITED') {
+          throw err;
+        }
+      }
+
+      const githubService = new GithubService(ctx.user.id);
+      if (!args?.force) {
+        await githubService.assertSyncAllowed();
+      }
+
       const result = await enqueueJob(JobType.GITHUB_SYNC, {
         userId: ctx.user.id,
       });

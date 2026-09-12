@@ -176,4 +176,69 @@ describe('GitHubApiClient', () => {
     expect(calendar.weeks).toHaveLength(1);
     expect(calendar.weeks[0]?.contributionDays[0]?.contributionCount).toBe(5);
   });
+
+  it('7. getContributionCalendar throws RATE_LIMITED when GraphQL returns rate limit errors in JSON payload', async () => {
+    const mockGraphQLError = {
+      errors: [
+        {
+          type: 'RATE_LIMITED',
+          message: 'API rate limit exceeded for user ID',
+        },
+      ],
+    };
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockGraphQLError,
+      headers: new Headers(),
+    } as any);
+
+    await expect(client.getContributionCalendar(mockToken, 'octocat')).rejects.toMatchObject({
+      code: 'RATE_LIMITED',
+    });
+  });
+
+  it('8. getRepositories tracks isPrivate flag and supports excludePrivate option', async () => {
+    const mockRepos = [
+      {
+        id: 1,
+        name: 'pub-repo',
+        full_name: 'octocat/pub-repo',
+        owner: { login: 'octocat' },
+        private: false,
+        stargazers_count: 5,
+        forks_count: 0,
+        fork: false,
+        pushed_at: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        name: 'priv-repo',
+        full_name: 'octocat/priv-repo',
+        owner: { login: 'octocat' },
+        private: true,
+        stargazers_count: 20,
+        forks_count: 0,
+        fork: false,
+        pushed_at: new Date().toISOString(),
+      },
+    ];
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockRepos,
+      headers: new Headers(),
+    } as any);
+
+    const allRepos = await client.getRepositories(mockToken, 100, { maxPages: 1 });
+    expect(allRepos).toHaveLength(2);
+    expect(allRepos[0]?.isPrivate).toBe(false);
+    expect(allRepos[1]?.isPrivate).toBe(true);
+
+    const publicOnly = await client.getRepositories(mockToken, 100, { excludePrivate: true, maxPages: 1 });
+    expect(publicOnly).toHaveLength(1);
+    expect(publicOnly[0]?.name).toBe('pub-repo');
+  });
 });

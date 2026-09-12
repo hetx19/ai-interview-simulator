@@ -1,7 +1,8 @@
 import { GitHubApiClient, gitHubApiClient, GitHubRepo, ContributionCalendar } from '@/server/external/GitHubApiClient';
 import { GithubRepository } from '@/server/repositories/GithubRepository';
 import { cacheKeys, cacheTags, cacheTTL } from '@/lib/cache/cacheKeys';
-import { redis, getCached } from '@/server/cache/redisClient';
+import { redis, getCached, invalidateCache, invalidateByTag } from '@/server/cache/redisClient';
+import { AppError } from '@/server/graphql/errors';
 import { logger } from '@/server/logging/logger';
 import { getCorrelationId } from '@/server/logging/correlationStore';
 import type { GithubProfile } from '@prisma/client';
@@ -140,6 +141,9 @@ export function calculateOverallScores(
   calendar?: ContributionCalendar | null,
   languages: Record<string, number> = {},
 ): ScoreBreakdown {
+  const publicRepos = (repos || []).filter((r) => !r.isPrivate);
+  const isPrivateOnly = repos && repos.length > 0 && publicRepos.length === 0;
+
   if (!repos || repos.length === 0) {
     return {
       commitConsistency: 0,
@@ -153,10 +157,29 @@ export function calculateOverallScores(
     };
   }
 
+  // Edge case: Private-only profile -> partial analysis (only commit consistency from calendar is assessable)
+  if (isPrivateOnly) {
+    const commitConsistency = calculateCommitConsistency(calendar);
+    const githubScore = Math.max(
+      0,
+      Math.min(100, Math.round(commitConsistency * 0.3)),
+    );
+    return {
+      commitConsistency,
+      codeQuality: 0,
+      communityEngagement: 0,
+      repositoryHealth: 0,
+      languageDiversity: 0,
+      githubScore,
+      repoHealthScore: 0,
+      openSourceScore: 0,
+    };
+  }
+
   const commitConsistency = calculateCommitConsistency(calendar);
-  const codeQuality = calculateCodeQuality(repos);
-  const communityEngagement = calculateCommunityEngagement(repos);
-  const repositoryHealth = calculateRepositoryHealth(repos);
+  const codeQuality = calculateCodeQuality(publicRepos);
+  const communityEngagement = calculateCommunityEngagement(publicRepos);
+  const repositoryHealth = calculateRepositoryHealth(publicRepos);
   const languageDiversity = calculateLanguageDiversity(languages);
 
   const githubScore = Math.max(
@@ -196,9 +219,18 @@ export function generateRecommendations(
   repos: GitHubRepo[],
 ): string[] {
   const recs: string[] = [];
+  const publicRepos = (repos || []).filter((r) => !r.isPrivate);
 
-  if (repos.length === 0) {
+  if (!repos || repos.length === 0) {
     recs.push('Create your first public repository to begin building your GitHub score.');
+    return recs;
+  }
+
+  // Edge case: Private-only profile warning
+  if (repos.length > 0 && publicRepos.length === 0) {
+    recs.push(
+      'Your profile only contains private repositories. Private repositories are excluded from analysis to respect code privacy, resulting in a partial analysis with reduced accuracy. Consider making key repositories public or adding public showcases.',
+    );
     return recs;
   }
 
@@ -206,12 +238,12 @@ export function generateRecommendations(
     recs.push('Aim for weekly commits and avoid gaps over 30 days to improve your Consistency score.');
   }
 
-  const missingLicense = repos.filter((r) => !r.isFork && (!r.license || r.license === 'NOASSERTION'));
+  const missingLicense = publicRepos.filter((r) => !r.isFork && (!r.license || r.license === 'NOASSERTION'));
   if (missingLicense.length > 0) {
     recs.push(`Add open-source licenses (such as MIT or Apache 2.0) to ${missingLicense.length} repository/repositories.`);
   }
 
-  const inactive = repos.filter((r) => r.isInactive);
+  const inactive = publicRepos.filter((r) => r.isInactive);
   if (inactive.length > 0) {
     recs.push(`Resume activity or archive ${inactive.length} dormant repository/repositories to improve repository health.`);
   }
@@ -259,7 +291,31 @@ export class GithubService {
     );
   }
 
-  public async syncProfile(token: string, options?: { force?: boolean }): Promise<GithubProfile> {
+  /**
+   * Enforces the 24-hour application rate limit on sync triggers.
+   * Throws AppError('RATE_LIMITED') with retry-after details if cooldown is active.
+   */
+  public async assertSyncAllowed(existingProfile?: GithubProfile | null): Promise<void> {
+    const profile = existingProfile !== undefined ? existingProfile : await this.repository.findByUserId(this.userId);
+    if (profile?.lastSyncedAt) {
+      const now = Date.now();
+      const elapsedMs = now - new Date(profile.lastSyncedAt).getTime();
+      const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+      if (elapsedMs < twentyFourHoursMs) {
+        const retryAfterSeconds = Math.ceil((twentyFourHoursMs - elapsedMs) / 1000);
+        throw new AppError(
+          'RATE_LIMITED',
+          `GitHub sync can only be triggered once every 24 hours. Retry after ${retryAfterSeconds} seconds.`,
+          'lastSyncedAt',
+        );
+      }
+    }
+  }
+
+  public async syncProfile(
+    token: string,
+    options?: { force?: boolean; throwOnRateLimit?: boolean },
+  ): Promise<GithubProfile> {
     const existing = await this.repository.findByUserId(this.userId);
     const now = new Date();
 
@@ -268,10 +324,18 @@ export class GithubService {
       const elapsedMs = now.getTime() - new Date(existing.lastSyncedAt).getTime();
       const twentyFourHoursMs = 24 * 60 * 60 * 1000;
       if (elapsedMs < twentyFourHoursMs) {
+        const retryAfterSeconds = Math.ceil((twentyFourHoursMs - elapsedMs) / 1000);
         logger.info(
-          { userId: this.userId, lastSyncedAt: existing.lastSyncedAt, correlationId: getCorrelationId() },
+          { userId: this.userId, lastSyncedAt: existing.lastSyncedAt, retryAfterSeconds, correlationId: getCorrelationId() },
           'GitHub profile sync throttled (24h cooldown)',
         );
+        if (options?.throwOnRateLimit) {
+          throw new AppError(
+            'RATE_LIMITED',
+            `GitHub sync can only be triggered once every 24 hours. Retry after ${retryAfterSeconds} seconds.`,
+            'lastSyncedAt',
+          );
+        }
         return existing;
       }
     }
@@ -281,25 +345,66 @@ export class GithubService {
       'Starting GitHub profile synchronization',
     );
 
-    // 1. Fetch user profile
-    const userProfile = await this.apiClient.getUserProfile(token);
+    let userProfile;
+    let repos: GitHubRepo[] = [];
+    let calendar: ContributionCalendar = { totalContributions: 0, weeks: [] };
 
-    // 2. Fetch user repositories
-    const repos = await this.apiClient.getRepositories(token, 100);
+    try {
+      // 1. Fetch user profile
+      userProfile = await this.apiClient.getUserProfile(token);
 
-    // 3. Fetch contribution calendar
-    const calendar = await this.apiClient.getContributionCalendar(token, userProfile.login);
+      // 2. Fetch user repositories (tracks public and private flags)
+      repos = await this.apiClient.getRepositories(token, 100);
 
-    // Compute language distribution from repos
+      // 3. Fetch contribution calendar via GraphQL
+      calendar = await this.apiClient.getContributionCalendar(token, userProfile.login);
+    } catch (err: any) {
+      // Specified edge case: GitHub rate limit hit mid-sync -> serve cached data with a stale-data indicator
+      if (err instanceof AppError && err.code === 'RATE_LIMITED' && existing) {
+        logger.warn(
+          { userId: this.userId, err, correlationId: getCorrelationId() },
+          'GitHub API rate limit hit mid-sync. Serving cached profile with stale-data indicator.',
+        );
+        const staleRecs = existing.recommendations ? [...existing.recommendations] : [];
+        if (!staleRecs.some((r) => r.includes('stale-data indicator') || r.includes('rate limit was encountered'))) {
+          staleRecs.unshift('[Stale Data] GitHub API rate limit was encountered during sync. Displaying cached telemetry.');
+        }
+        return {
+          ...existing,
+          recommendations: staleRecs,
+        };
+      }
+
+      // Specified edge case: Expired/revoked GitHub token -> reconnect prompt, not a silent failure
+      if (err instanceof AppError && err.code === 'UNAUTHENTICATED') {
+        logger.warn(
+          { userId: this.userId, correlationId: getCorrelationId() },
+          'GitHub token expired or revoked. Reconnect required.',
+        );
+        throw new AppError(
+          'UNAUTHENTICATED',
+          'GitHub token expired or revoked. Please reconnect your GitHub account.',
+        );
+      }
+
+      throw err;
+    }
+
+    // Exclude private repos from scoring and public telemetry
+    const publicRepos = repos.filter((r) => !r.isPrivate);
+
+    // Compute language distribution strictly from public repos
     const languageDistribution: Record<string, number> = {};
-    for (const repo of repos) {
+    for (const repo of publicRepos) {
       if (repo.language) {
-        languageDistribution[repo.language] = (languageDistribution[repo.language] || 0) + (repo.size || 1);
+        const weight = repo.isFork ? 0.5 : 1.0;
+        languageDistribution[repo.language] =
+          (languageDistribution[repo.language] || 0) + Math.round((repo.size || 1) * weight);
       }
     }
 
-    // Compute top repos (sorted by stars descending, top 6)
-    const sortedRepos = [...repos].sort((a, b) => b.stars - a.stars);
+    // Compute top repos from public repos (sorted by stars descending, top 6)
+    const sortedRepos = [...publicRepos].sort((a, b) => b.stars - a.stars);
     const topRepos = sortedRepos.slice(0, 6).map((r) => ({
       name: r.name,
       stars: r.stars,
@@ -310,12 +415,12 @@ export class GithubService {
       isInactive: r.isInactive,
     }));
 
-    // Calculate scores
+    // Calculate scores (pure function)
     const breakdown = calculateOverallScores(repos, calendar, languageDistribution);
     const recommendations = generateRecommendations(breakdown, repos);
 
-    const totalStars = repos.reduce((acc, r) => acc + (r.stars || 0), 0);
-    const totalForks = repos.reduce((acc, r) => acc + (r.forks || 0), 0);
+    const totalStars = publicRepos.reduce((acc, r) => acc + (r.stars || 0), 0);
+    const totalForks = publicRepos.reduce((acc, r) => acc + (r.forks || 0), 0);
 
     // Persist to database via GithubRepository
     const profile = await this.repository.upsertProfile(this.userId, {
@@ -324,7 +429,7 @@ export class GithubService {
       githubScore: breakdown.githubScore,
       repoHealthScore: breakdown.repoHealthScore,
       openSourceScore: breakdown.openSourceScore,
-      totalRepos: repos.length,
+      totalRepos: publicRepos.length,
       totalStars,
       totalForks,
       totalCommitsYear: calendar.totalContributions,
@@ -335,10 +440,12 @@ export class GithubService {
       lastSyncedAt: now,
     });
 
-    // Write-through to Redis cache
+    // Invalidate and write-through to Redis cache
+    const cacheKey = cacheKeys.githubProfile(this.userId);
     try {
-      const cacheKey = cacheKeys.githubProfile(this.userId);
+      await invalidateCache(cacheKey);
       await redis.set(cacheKey, profile, { ex: cacheTTL.githubProfile });
+      await invalidateByTag(cacheTags.user(this.userId));
     } catch (err) {
       logger.warn(
         { userId: this.userId, err, correlationId: getCorrelationId() },

@@ -1,4 +1,5 @@
 import { db as prismaDb } from '@/lib/prisma';
+import { AppError } from '@/server/graphql/errors';
 
 export abstract class BaseRepository {
   protected readonly userId: string;
@@ -59,10 +60,11 @@ export abstract class BaseRepository {
       const data = maybeData;
       const isUserModel = delegate === this.db.user;
       if (isUserModel) {
-        const targetId =
-          id === this.userId ? this.userId : '00000000-0000-0000-0000-000000000000';
+        if (id !== this.userId) {
+          throw new AppError('FORBIDDEN', 'Access denied');
+        }
         return delegate.update({
-          where: { id: targetId },
+          where: { id: this.userId },
           data,
         });
       }
@@ -74,10 +76,11 @@ export abstract class BaseRepository {
     } else {
       const id = delegateOrId;
       const data = idOrData;
-      const targetId =
-        id === this.userId ? this.userId : '00000000-0000-0000-0000-000000000000';
+      if (id !== this.userId) {
+        throw new AppError('FORBIDDEN', 'Access denied');
+      }
       return this.db.user.update({
-        where: { id: targetId },
+        where: { id: this.userId },
         data,
       }) as unknown as Promise<T>;
     }
@@ -91,10 +94,11 @@ export abstract class BaseRepository {
       const id = maybeId;
       const isUserModel = delegate === this.db.user;
       if (isUserModel) {
-        const targetId =
-          id === this.userId ? this.userId : '00000000-0000-0000-0000-000000000000';
+        if (id !== this.userId) {
+          throw new AppError('FORBIDDEN', 'Access denied');
+        }
         await delegate.delete({
-          where: { id: targetId },
+          where: { id: this.userId },
         });
         return;
       }
@@ -104,30 +108,13 @@ export abstract class BaseRepository {
       });
     } else {
       const id = delegateOrId;
-      const targetId =
-        id === this.userId ? this.userId : '00000000-0000-0000-0000-000000000000';
+      if (id !== this.userId) {
+        throw new AppError('FORBIDDEN', 'Access denied');
+      }
       await this.db.user.delete({
-        where: { id: targetId },
+        where: { id: this.userId },
       });
     }
-  }
-
-  public async softDelete(delegate: any, id: string): Promise<void> {
-    const isUserModel = delegate === this.db.user;
-    if (isUserModel) {
-      const targetId =
-        id === this.userId ? this.userId : '00000000-0000-0000-0000-000000000000';
-      await delegate.update({
-        where: { id: targetId },
-        data: { deletedAt: new Date() },
-      });
-      return;
-    }
-
-    await delegate.update({
-      where: { id, userId: this.userId },
-      data: { deletedAt: new Date() },
-    });
   }
 
   public async deleteMany(delegate: any, where?: object): Promise<number> {

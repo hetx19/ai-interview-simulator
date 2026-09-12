@@ -65,22 +65,22 @@ describe('BaseRepository & UserRepository Scoping', () => {
     expect(result?.id).not.toBe(userB.id);
   });
 
-  it('27. update rejects cross-user update attempt (throws Prisma P2025)', async () => {
+  it('27. update rejects cross-user update attempt with FORBIDDEN AppError', async () => {
     const repoA = new UserRepository(userA.id);
     // User A attempts to update User B
     await expect(
       repoA.update(userB.id, { name: 'Compromised Name' }),
-    ).rejects.toThrow();
+    ).rejects.toThrow('Access denied');
 
     // Verify User B was NOT modified
     const currentB = await db.user.findUnique({ where: { id: userB.id } });
     expect(currentB?.name).toBe('User B');
   });
 
-  it('28. delete rejects cross-user hardDelete attempt (throws Prisma P2025)', async () => {
+  it('28. delete rejects cross-user hardDelete attempt with FORBIDDEN AppError', async () => {
     const repoA = new UserRepository(userA.id);
     // User A attempts to delete User B
-    await expect(repoA.hardDelete(userB.id)).rejects.toThrow();
+    await expect(repoA.hardDelete(userB.id)).rejects.toThrow('Access denied');
 
     // Verify User B was NOT deleted
     const currentB = await db.user.findUnique({ where: { id: userB.id } });

@@ -1,0 +1,265 @@
+name: CD - Deployment
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.idea/**'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.idea/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Deployment Environment'
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+        default: 'preview'
+      run_migrations:
+        description: 'Run Database Migrations (Prisma Migrate Deploy)'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  deployments: write
+  pull-requests: write
+  packages: write
+
+# Prevent overlapping deployments to the same environment while allowing separate environments to deploy concurrently
+concurrency:
+  group: cd-${{ github.workflow }}-${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'preview') }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-env:
+    name: Resolve Target Environment
+    runs-on: ubuntu-latest
+    outputs:
+      target_env: ${{ steps.env-select.outputs.target_env }}
+      is_production: ${{ steps.env-select.outputs.is_production }}
+      should_migrate: ${{ steps.env-select.outputs.should_migrate }}
+    steps:
+      - id: env-select
+        name: Determine Deployment Metadata
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET="${{ github.event.inputs.environment }}"
+            MIGRATE="${{ github.event.inputs.run_migrations }}"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TARGET="production"
+            MIGRATE="true"
+          else
+            TARGET="preview"
+            MIGRATE="false"
+          fi
+
+          echo "target_env=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "should_migrate=$MIGRATE" >> "$GITHUB_OUTPUT"
+          if [ "$TARGET" = "production" ]; then
+            echo "is_production=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_production=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "### 🚀 Deployment Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Environment:** \`$TARGET\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger Event:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database Migrations Enabled:** \`$MIGRATE\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit Ref:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+  migrate-db:
+    name: Database Migrations
+    needs: resolve-env
+    if: needs.resolve-env.outputs.should_migrate == 'true'
+    environment: ${{ needs.resolve-env.outputs.target_env }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Execute Prisma Migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::DATABASE_URL secret is not configured for environment '${{ needs.resolve-env.outputs.target_env }}'. Skipping database migration step."
+            echo "⚠️ \`DATABASE_URL\` secret missing. Migrations skipped." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Running Prisma migration deploy against target database..."
+            npm run prisma:migrate:deploy --workspace=web
+            echo "✅ Database schema migrations applied successfully." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  deploy-vercel:
+    name: Deploy to Vercel
+    needs:
+      - resolve-env
+      - migrate-db
+    if: always() && (needs.migrate-db.result == 'success' || needs.migrate-db.result == 'skipped')
+    environment:
+      name: ${{ needs.resolve-env.outputs.target_env }}
+      url: ${{ steps.vercel-deploy.outputs.deployment-url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check Vercel Credentials
+        id: check-secrets
+        run: |
+          if [ -n "${{ secrets.VERCEL_TOKEN }}" ] && [ -n "${{ secrets.VERCEL_ORG_ID }}" ] && [ -n "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Vercel (Production or Preview)
+        id: vercel-deploy
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: ${{ needs.resolve-env.outputs.is_production == 'true' && '--prod' || '' }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: ./
+
+      - name: Comment Preview Deployment URL on Pull Request
+        if: steps.check-secrets.outputs.configured == 'true' && github.event_name == 'pull_request' && steps.vercel-deploy.outputs.deployment-url != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = "${{ steps.vercel-deploy.outputs.deployment-url }}";
+            const commentBody = `### 🚀 DevMetric Preview Deployment Ready!\n\n- **Preview URL:** [${url}](${url})\n- **Environment:** \`${{ needs.resolve-env.outputs.target_env }}\`\n- **Commit:** ${{ github.sha }}\n\n*Built automatically by DevMetric CI/CD.*`;
+            
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const botComment = comments.data.find(c => c.body.includes("DevMetric Preview Deployment Ready"));
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody,
+              });
+            }
+
+      - name: Publish Deployment Summary
+        run: |
+          echo "### 🌐 Vercel Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-secrets.outputs.configured }}" = "true" ]; then
+            echo "✅ Deployment succeeded!" >> $GITHUB_STEP_SUMMARY
+            echo "- **Environment:** \`${{ needs.resolve-env.outputs.target_env }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **URL:** ${{ steps.vercel-deploy.outputs.deployment-url }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ **Vercel credentials are not yet configured.**" >> $GITHUB_STEP_SUMMARY
+            echo "To enable live Vercel deployments, configure the following secrets in GitHub Repository/Environment Settings:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VERCEL_TOKEN\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VERCEL_ORG_ID\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VERCEL_PROJECT_ID\`" >> $GITHUB_STEP_SUMMARY
+            echo "See [.github/CI_CD_GUIDE.md](file://.github/CI_CD_GUIDE.md) for full configuration details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  deploy-container:
+    name: Build & Push Container Image (GHCR)
+    needs:
+      - resolve-env
+      - migrate-db
+    if: (vars.ENABLE_DOCKER_DEPLOY == 'true' || needs.resolve-env.outputs.is_production == 'true') && (needs.migrate-db.result == 'success' || needs.migrate-db.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable=${{ needs.resolve-env.outputs.is_production == 'true' }}
+            type=sha,format=short,prefix=sha-
+            type=ref,event=branch
+            type=ref,event=pr
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: ${{ vars.ENABLE_DOCKER_DEPLOY == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Container Deployment Summary
+        run: |
+          echo "### 🐳 Container Build & Registry Status" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ vars.ENABLE_DOCKER_DEPLOY }}" = "true" ]; then
+            echo "✅ Container successfully pushed to GitHub Container Registry." >> $GITHUB_STEP_SUMMARY
+            echo "- **Image:** \`ghcr.io/${{ github.repository }}\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ Container build validated. Set repository variable \`ENABLE_DOCKER_DEPLOY=true\` to automatically push images to GHCR." >> $GITHUB_STEP_SUMMARY
+          fi

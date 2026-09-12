@@ -2,6 +2,7 @@ import { kv } from '@vercel/kv';
 import { randomUUID } from 'node:crypto';
 import { logger } from '@/server/logging/logger';
 import { getCorrelationId } from '@/server/logging/correlationStore';
+import { AppError } from '@/server/graphql/errors';
 
 export const redis = kv;
 
@@ -84,6 +85,15 @@ async function executeWithLock<T>(
     if (polled !== null && polled !== undefined) {
       return polled;
     }
+
+    logger.warn(
+      { key, correlationId: getCorrelationId() },
+      'Lock acquisition timed out, rejecting with RATE_LIMITED to prevent stampede',
+    );
+    throw new AppError(
+      'RATE_LIMITED',
+      'Resource is currently busy, please retry shortly',
+    );
   }
 
   try {

@@ -183,4 +183,30 @@ describe('Cache Layer - getCached & invalidation', () => {
     expect(capturedKeys[0]).toBe('lock:lock-test-key');
     expect(capturedArgs[0]).toBeDefined();
   });
+
+  it('12. Lock acquisition timeout throws RATE_LIMITED when lock is held and polling times out', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(redis.get).mockResolvedValue(null);
+      vi.mocked(redis.set).mockResolvedValue(null); // lock not acquired
+
+      const fetcher = vi.fn().mockResolvedValue({ data: 'fresh' });
+
+      const promise = getCached('busy:key', fetcher, { ttl: 60 });
+      let error: any = null;
+      promise.catch((e) => {
+        error = e;
+      });
+
+      await vi.advanceTimersByTimeAsync(2500);
+
+      await expect(promise).rejects.toThrow(
+        'Resource is currently busy, please retry shortly',
+      );
+      expect(error?.code).toBe('RATE_LIMITED');
+      expect(fetcher).toHaveBeenCalledTimes(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

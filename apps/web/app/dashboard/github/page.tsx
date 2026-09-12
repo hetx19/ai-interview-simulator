@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import { ContributionHeatmap } from "@/components/charts/ContributionHeatmap";
 
 interface ContributionDay {
   contributionCount: number;
@@ -81,26 +83,6 @@ function getReadinessTier(score: number): { tier: string; subtitle: string } {
   return { tier: "Readiness Tier: Developing", subtitle: "Building Foundations for L3/L4 Roles" };
 }
 
-function computeStreaks(calendar?: ContributionCalendar | null): { currentStreak: number; longestStreak: number } {
-  if (!calendar || !calendar.weeks || calendar.weeks.length === 0) {
-    return { currentStreak: 0, longestStreak: 0 };
-  }
-  const allDays = calendar.weeks.flatMap((w) => w.contributionDays || []);
-  let currentStreak = 0;
-  let maxStreak = 0;
-
-  for (const day of allDays) {
-    if (day.contributionCount > 0) {
-      currentStreak++;
-      if (currentStreak > maxStreak) maxStreak = currentStreak;
-    } else {
-      currentStreak = 0;
-    }
-  }
-
-  return { currentStreak, longestStreak: maxStreak };
-}
-
 function classifyRecommendation(rec: string) {
   const lower = rec.toLowerCase();
   if (lower.includes("license") || lower.includes("dormant") || lower.includes("gap")) {
@@ -144,7 +126,11 @@ export default function GitHubAnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [syncMessage, setSyncMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+    action?: "reconnect";
+  } | null>(null);
   const [formattedSyncDate, setFormattedSyncDate] = useState<string>("");
 
   const fetchProfile = useCallback(async () => {
@@ -200,6 +186,17 @@ export default function GitHubAnalyticsPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("reconnected") === "1") {
+        setSyncMessage({
+          type: "success",
+          text: "GitHub connected successfully. Your credentials have been refreshed.",
+        });
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
+    }
     fetchProfile();
   }, [fetchProfile]);
 
@@ -225,9 +222,30 @@ export default function GitHubAnalyticsPage() {
         }),
       });
 
+      if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error("GitHub sync can only be triggered once every 24 hours.");
+        }
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+
       const json = await res.json();
       if (json.errors && json.errors.length > 0) {
-        throw new Error(json.errors[0].message || "Failed to initiate sync");
+        const firstErr = json.errors[0];
+        const code = firstErr.extensions?.code;
+        const rawMsg = firstErr.message || "Failed to initiate sync";
+        const lowerMsg = rawMsg.toLowerCase();
+
+        if (code === "RATE_LIMITED" || lowerMsg.includes("24 hours")) {
+          throw new Error(rawMsg || "GitHub sync can only be triggered once every 24 hours.");
+        }
+        if (code === "UNAUTHENTICATED" || lowerMsg.includes("expired") || lowerMsg.includes("revoked") || lowerMsg.includes("connect")) {
+          throw new Error(rawMsg);
+        }
+        if (rawMsg === "An unexpected error occurred") {
+          throw new Error("Failed to queue synchronization job. Please verify queue configuration and try again.");
+        }
+        throw new Error(rawMsg);
       }
 
       const result = json.data?.syncGitHub;
@@ -242,11 +260,21 @@ export default function GitHubAnalyticsPage() {
       }, 4000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Sync request failed";
-      setSyncMessage({ type: "error", text: msg });
+      const isAuth =
+        msg.toLowerCase().includes("reconnect") ||
+        msg.toLowerCase().includes("connect") ||
+        msg.toLowerCase().includes("expired") ||
+        msg.toLowerCase().includes("revoked");
+
+      setSyncMessage({
+        type: "error",
+        text: msg,
+        action: isAuth ? "reconnect" : undefined,
+      });
     } finally {
       setTimeout(() => {
         setIsSyncing(false);
-      }, 3000);
+      }, 2000);
     }
   };
 
@@ -325,8 +353,30 @@ export default function GitHubAnalyticsPage() {
             </p>
 
             {syncMessage && (
-              <div className={`mt-4 max-w-md mx-auto p-3 rounded-lg text-xs font-mono text-left ${syncMessage.type === "success" ? "bg-[#6bde80]/15 text-[#6bde80] border border-[#6bde80]/30" : "bg-[#ffb4ab]/15 text-[#ffb4ab] border border-[#ffb4ab]/30"}`}>
-                {syncMessage.text}
+              <div
+                className={`mt-4 max-w-md mx-auto p-3.5 rounded-lg text-xs flex flex-col gap-2.5 text-left border ${
+                  syncMessage.type === "success"
+                    ? "bg-[#6bde80]/15 text-[#6bde80] border-[#6bde80]/30"
+                    : "bg-[#ffb4ab]/15 text-[#ffb4ab] border-[#ffb4ab]/30"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base shrink-0">
+                    {syncMessage.type === "success" ? "check_circle" : "error"}
+                  </span>
+                  <span className="font-mono text-xs">{syncMessage.text}</span>
+                </div>
+                {syncMessage.action === "reconnect" && (
+                  <div className="pt-1">
+                    <Link
+                      href="/api/auth/signin/github?callbackUrl=/dashboard/github?reconnected=1"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#ffb4ab] text-[#690005] font-semibold text-xs hover:bg-[#ffdad6] transition-colors shadow-sm"
+                    >
+                      <span className="material-symbols-outlined text-xs">login</span>
+                      Reconnect GitHub Account
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
@@ -358,7 +408,6 @@ export default function GitHubAnalyticsPage() {
   const forks = profile.totalForks ?? 0;
   const healthScore = profile.repoHealthScore ?? 0;
   const openSourceScore = profile.openSourceScore ?? 0;
-  const streaks = computeStreaks(profile.contributionCalendar);
 
   // Language breakdown
   const langEntries = profile.languageDistribution ? Object.entries(profile.languageDistribution) : [];
@@ -396,17 +445,6 @@ export default function GitHubAnalyticsPage() {
   const recommendations = profile.recommendations && profile.recommendations.length > 0
     ? profile.recommendations
     : ["Your GitHub profile demonstrates solid consistency and healthy code practices!"];
-
-  // Heatmap Weeks (last 52)
-  const calendarWeeks: ContributionWeek[] = profile.contributionCalendar?.weeks || [];
-  const displayWeeks: ContributionWeek[] = calendarWeeks.length >= 52
-    ? calendarWeeks.slice(-52)
-    : [
-        ...Array.from({ length: Math.max(0, 52 - calendarWeeks.length) }, (): ContributionWeek => ({
-          contributionDays: [],
-        })),
-        ...calendarWeeks,
-      ];
 
   return (
     <div className="flex flex-col w-full">
@@ -479,6 +517,73 @@ export default function GitHubAnalyticsPage() {
             </div>
           )}
         </div>
+
+        {/* Edge Case: Expired or Revoked Token Reconnect Prompt */}
+        {(error?.toLowerCase().includes("unauthenticated") ||
+          error?.toLowerCase().includes("expired") ||
+          syncMessage?.text?.toLowerCase().includes("expired") ||
+          syncMessage?.text?.toLowerCase().includes("reconnect")) && (
+          <div className="rounded-xl bg-[#93000a]/20 border border-[#ffb4ab]/40 p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-[#ffb4ab] text-2xl shrink-0">key_off</span>
+              <div>
+                <h4 className="text-sm font-semibold text-[#ffb4ab]">GitHub Authorization Expired</h4>
+                <p className="text-xs text-[#c7c5d0] mt-0.5">
+                  Your GitHub authorization token has expired or was revoked. Please reconnect your account to refresh your telemetry and score.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/api/auth/signin/github?callbackUrl=/dashboard/github?reconnected=1"
+              className="px-4 py-2 rounded-lg bg-[#ffb4ab] text-[#690005] font-semibold text-xs hover:bg-[#ffdad6] transition-colors shadow-md flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-sm">login</span>
+              Reconnect GitHub
+            </Link>
+          </div>
+        )}
+
+        {/* Edge Case: Stale Data Indicator (Rate limit encountered mid-sync) */}
+        {profile.recommendations?.some((r) => r.includes("[Stale Data]") || r.includes("rate limit was encountered")) && (
+          <div className="rounded-xl bg-[#006d32]/20 border border-[#26a641]/40 p-4 flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#6bde80] text-2xl shrink-0">schedule</span>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-[#6bde80]">Serving Cached Telemetry (Stale Data)</h4>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#006d32] text-[#e4e1ed]">STALE CACHE ACTIVE</span>
+              </div>
+              <p className="text-xs text-[#c7c5d0] mt-0.5">
+                GitHub API rate limit was hit mid-sync. Serving your existing profile to prevent downtime. Fresh telemetry will be ingested on your next sync cycle.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Edge Case: Private-Only Profile Warning */}
+        {profile.totalRepos === 0 && profile.recommendations?.some((r) => r.toLowerCase().includes("private repositories")) && (
+          <div className="rounded-xl bg-[#ffb867]/15 border border-[#ffb867]/30 p-4 flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#ffb867] text-2xl shrink-0">lock</span>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-[#ffb867]">Private-Only Profile Detected</h4>
+              <p className="text-xs text-[#c7c5d0] mt-0.5">
+                DevMetric excluded your private repositories from scoring to respect your code privacy. Your current score reflects public contribution telemetry only, resulting in reduced scoring accuracy. Consider showcasing public projects to unlock your full score.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Edge Case: 0 Repositories UI Prompt */}
+        {profile.totalRepos === 0 && !profile.recommendations?.some((r) => r.toLowerCase().includes("private repositories")) && (
+          <div className="rounded-xl bg-[#c0c1ff]/15 border border-[#c0c1ff]/30 p-4 flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#e1dfff] text-2xl shrink-0">info</span>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-[#e1dfff]">0 Public Repositories Found</h4>
+              <p className="text-xs text-[#c7c5d0] mt-0.5">
+                DevMetric requires at least one public repository to evaluate Code Quality, Language Diversity, and Community Engagement. Create your first public repository on GitHub to build your score!
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -580,102 +685,7 @@ export default function GitHubAnalyticsPage() {
         </div>
 
         {/* contribution heatmap */}
-        <div className="rounded-xl bg-[#1b1b23]/90 backdrop-blur-xl p-6 shadow-xl relative overflow-hidden border border-[#292932]/40">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#6bde80]">calendar_view_week</span>
-                <h2 className="text-[18px] leading-[26px] font-[600] text-[#e4e1ed]">Full 52-Week Contribution Matrix</h2>
-              </div>
-              <p className="text-[12px] leading-[18px] text-[#c7c5d0] mt-0.5">
-                Daily telemetry density across public and upstream repositories
-              </p>
-            </div>
-            <div className="flex items-center gap-6 flex-wrap">
-              <div className="flex items-center gap-3 bg-[#0d0d15] px-3 py-1.5 rounded-lg shadow-inner">
-                <div className="flex flex-col">
-                  <span className="text-[10px] leading-[14px] font-[600] tracking-[0.06em] text-[#918f9a] uppercase">Current Streak</span>
-                  <span className="text-[16px] leading-[24px] font-bold text-[#6bde80]">{streaks.currentStreak} Days 🔥</span>
-                </div>
-                <div className="w-px h-6 bg-[#46464f]/30" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] leading-[14px] font-[600] tracking-[0.06em] text-[#918f9a] uppercase">Longest Streak</span>
-                  <span className="text-[16px] leading-[24px] font-bold text-[#e1dfff]">{streaks.longestStreak} Days</span>
-                </div>
-              </div>
-
-              {/* legend */}
-              <div className="flex items-center gap-1.5 text-[10px] leading-[14px] font-[600] text-[#918f9a]">
-                <span>Less</span>
-                <span className="w-2.5 h-2.5 rounded-xs bg-[#161b22]" />
-                <span className="w-2.5 h-2.5 rounded-xs bg-[#0e4429]" />
-                <span className="w-2.5 h-2.5 rounded-xs bg-[#006d32]" />
-                <span className="w-2.5 h-2.5 rounded-xs bg-[#26a641]" />
-                <span className="w-2.5 h-2.5 rounded-xs bg-[#39d353]" />
-                <span>More</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 52-week matrix */}
-          <div className="overflow-x-auto pb-1">
-            <div className="min-w-[780px]">
-              <div className="grid grid-cols-12 text-[#918f9a] text-[10px] leading-[14px] font-[600] mb-2 pl-8 pr-2">
-                {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m) => (
-                  <span key={m}>{m}</span>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <div className="flex flex-col justify-between text-[#918f9a] text-[10px] leading-[14px] font-[600] py-1 h-[112px]">
-                  <span>Mon</span>
-                  <span>Wed</span>
-                  <span>Fri</span>
-                </div>
-                <div className="flex-1">
-                  <svg className="w-full h-[112px]" fill="none" preserveAspectRatio="none" viewBox="0 0 832 112">
-                    <defs>
-                      <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="0" stdDeviation="1" floodColor="#39d353" floodOpacity="0.3" />
-                      </filter>
-                    </defs>
-                    <g className="heatmap-tiles">
-                      {displayWeeks.map((week, cIndex) => {
-                        return (
-                          <g key={cIndex} transform={`translate(${cIndex * 16}, 0)`}>
-                            {Array.from({ length: 7 }).map((_, rIndex) => {
-                              const day = week.contributionDays?.find((d: ContributionDay) => d.weekday === rIndex) || week.contributionDays?.[rIndex];
-                              const count = day?.contributionCount || 0;
-                              let color = "#161b22";
-                              if (count > 0 && count <= 2) color = "#0e4429";
-                              else if (count <= 5) color = "#006d32";
-                              else if (count <= 8) color = "#26a641";
-                              else if (count > 8) color = "#39d353";
-
-                              return (
-                                <rect
-                                  key={rIndex}
-                                  x={0}
-                                  y={rIndex * 16}
-                                  width={12}
-                                  height={12}
-                                  rx={2}
-                                  fill={color}
-                                  filter={color === "#39d353" ? "url(#glow-green)" : undefined}
-                                >
-                                  <title>{day?.date ? `${day.date}: ${count} contributions` : `No activity`}</title>
-                                </rect>
-                              );
-                            })}
-                          </g>
-                        );
-                      })}
-                    </g>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ContributionHeatmap calendar={profile.contributionCalendar} />
 
         {/* languages & recommendations */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

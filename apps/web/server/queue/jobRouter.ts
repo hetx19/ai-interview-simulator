@@ -2,8 +2,10 @@ import { JobType, QStashMessage } from './jobTypes';
 import { logger } from '@/server/logging/logger';
 import { getDecryptedAccessToken } from '@/server/auth/encryption';
 import { GithubService } from '@/server/services/GithubService';
-import { invalidateByTag } from '@/server/cache/redisClient';
-import { cacheTags } from '@/lib/cache/cacheKeys';
+import { invalidateByTag, invalidateCache } from '@/server/cache/redisClient';
+import { cacheKeys, cacheTags } from '@/lib/cache/cacheKeys';
+import { AppError } from '@/server/graphql/errors';
+import { refreshGitHubAccessToken } from '@/server/auth/tokenRefresh';
 
 export async function dispatchJob(message: QStashMessage<any>): Promise<void> {
   logger.info(
@@ -20,10 +22,44 @@ export async function dispatchJob(message: QStashMessage<any>): Promise<void> {
       const { userId } = message.payload;
       const token = await getDecryptedAccessToken(userId, 'github');
       if (!token) {
-        throw new Error(`No GitHub OAuth token available for user ${userId}`);
+        logger.error(
+          { userId, correlationId: message.correlationId },
+          'No GitHub OAuth token available for user. Reconnect required.',
+        );
+        throw new AppError('UNAUTHENTICATED', `No GitHub OAuth token available for user ${userId}`);
       }
       const githubService = new GithubService(userId);
-      await githubService.syncProfile(token);
+      try {
+        await githubService.syncProfile(token);
+      } catch (err: any) {
+        if (err instanceof AppError && err.code === 'UNAUTHENTICATED') {
+          const refreshedToken = await refreshGitHubAccessToken(userId);
+          if (refreshedToken) {
+            try {
+              await githubService.syncProfile(refreshedToken);
+              await invalidateCache(cacheKeys.githubProfile(userId));
+              await invalidateByTag(cacheTags.user(userId));
+              break;
+            } catch (retryErr: any) {
+              if (retryErr instanceof AppError && retryErr.code === 'UNAUTHENTICATED') {
+                logger.warn(
+                  { userId, correlationId: message.correlationId },
+                  'GitHub OAuth token expired or revoked during background sync. Reconnection prompt required.',
+                );
+                return;
+              }
+              throw retryErr;
+            }
+          }
+          logger.warn(
+            { userId, correlationId: message.correlationId },
+            'GitHub OAuth token expired or revoked during background sync. Reconnection prompt required.',
+          );
+          return;
+        }
+        throw err;
+      }
+      await invalidateCache(cacheKeys.githubProfile(userId));
       await invalidateByTag(cacheTags.user(userId));
       break;
     }

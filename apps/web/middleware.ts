@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 // exact public routes
 const PUBLIC_EXACT = new Set(["/", "/login", "/signup"]);
@@ -43,18 +44,38 @@ export function isPublicRoute(pathname: string): boolean {
 export function hasSessionCookie(req: NextRequest): boolean {
   return SESSION_COOKIE_NAMES.some((name) => {
     const cookie = req.cookies.get(name);
-    return Boolean(cookie && cookie.value);
+    return Boolean(cookie && cookie.value && cookie.value.trim().length > 0);
   });
 }
 
-export function middleware(req: NextRequest): NextResponse {
+// verify cryptographic signature of token via next-auth/jwt getToken
+export async function isAuthenticated(req: NextRequest): Promise<boolean> {
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+
+  try {
+    const token = await getToken({
+      req,
+      secret,
+    });
+    if (token) {
+      return true;
+    }
+  } catch {
+    // Malformed or invalid cryptographic token
+  }
+
+  // Fallback for database session strategy
+  return hasSessionCookie(req);
+}
+
+export async function middleware(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
 
   if (isPublicRoute(pathname)) {
     return NextResponse.next();
   }
 
-  const authenticated = hasSessionCookie(req);
+  const authenticated = await isAuthenticated(req);
 
   if (!authenticated) {
     // api routes return 401

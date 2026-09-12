@@ -126,8 +126,14 @@ export function EncryptedPrismaAdapter(prisma: PrismaClient): Adapter {
         ? encryptToken(account.refresh_token)
         : null;
 
-      await prisma.account.create({
-        data: {
+      await prisma.account.upsert({
+        where: {
+          provider_providerAccountId: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+          },
+        },
+        create: {
           userId: account.userId,
           provider: account.provider,
           providerAccountId: account.providerAccountId,
@@ -136,6 +142,13 @@ export function EncryptedPrismaAdapter(prisma: PrismaClient): Adapter {
           tokenType: account.token_type ?? null,
           scope: account.scope ?? null,
           expiresAt: account.expires_at ? BigInt(account.expires_at) : null,
+        },
+        update: {
+          ...(encryptedAccessToken ? { accessToken: encryptedAccessToken } : {}),
+          ...(encryptedRefreshToken ? { refreshToken: encryptedRefreshToken } : {}),
+          ...(account.expires_at ? { expiresAt: BigInt(account.expires_at) } : {}),
+          ...(account.token_type ? { tokenType: account.token_type } : {}),
+          ...(account.scope ? { scope: account.scope } : {}),
         },
       });
 
