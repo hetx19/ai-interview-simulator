@@ -22,6 +22,10 @@ model User {
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt       DateTime? @map("deleted_at") @db.Timestamptz
 
+  // Onboarding wizard state
+  onboardingStep      String  @default("CONNECT_GITHUB") @map("onboarding_step") @db.VarChar(50)
+  onboardingCompleted Boolean @default(false) @map("onboarding_completed")
+
   // Relations
   accounts             Account[]
   sessions             Session[]

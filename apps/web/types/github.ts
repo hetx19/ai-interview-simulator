@@ -1,6 +1,4 @@
-// ---------------------------------------------------------------------------
-// JSONB column shapes for github_profiles
-// ---------------------------------------------------------------------------
+// github jsonb column shapes
 export type LanguageDistribution = Record<string, number>;
 
 export type ContributionCalendar = Record<string, number>;
@@ -15,9 +13,7 @@ export interface TopRepo {
   topics: string[];
 }
 
-// ---------------------------------------------------------------------------
-// GitHub API sync payload
-// ---------------------------------------------------------------------------
+// github sync payload
 export interface GitHubSyncPayload {
   githubUsername: string;
   totalRepos: number;
@@ -31,7 +27,7 @@ export interface GitHubSyncPayload {
 }
 
 export interface GitHubScores {
-  githubScore: number; // 0–100 composite
-  repoHealthScore: number; // 0–100
-  openSourceScore: number; // 0–100
+  githubScore: number; // composite 0-100
+  repoHealthScore: number; // 0-100
+  openSourceScore: number; // 0-100
 }

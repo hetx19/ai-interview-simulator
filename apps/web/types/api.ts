@@ -1,22 +1,18 @@
-// ---------------------------------------------------------------------------
-// Standard API response envelope
-// ---------------------------------------------------------------------------
+// standard api envelope
 export interface ApiSuccess<T> {
   data: T;
   message?: string;
 }
 
 export interface ApiError {
-  error: string; // machine-readable code
-  message: string; // human-readable description
-  details?: unknown; // Zod validation errors, etc.
+  error: string; // error code
+  message: string; // description
+  details?: unknown; // validation errors / details
 }
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
-// ---------------------------------------------------------------------------
-// Pagination
-// ---------------------------------------------------------------------------
+// pagination
 export interface PaginationParams {
   limit: number; // max 100
   offset: number;
@@ -30,9 +26,7 @@ export interface PaginatedResult<T> {
   hasMore: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Common error codes
-// ---------------------------------------------------------------------------
+// error codes
 export const API_ERROR_CODES = {
   UNAUTHORIZED: "UNAUTHORIZED",
   FORBIDDEN: "FORBIDDEN",
@@ -48,10 +42,7 @@ export const API_ERROR_CODES = {
 export type ApiErrorCode =
   (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES];
 
-// ---------------------------------------------------------------------------
-// Specific API request/response shapes
-// ---------------------------------------------------------------------------
-
+// request and response shapes
 export interface StartInterviewRequest {
   difficulty: "easy" | "medium" | "hard";
   topic?: string;
@@ -80,7 +71,7 @@ export interface SubmitInterviewRequest {
 }
 
 export interface SyncGitHubRequest {
-  /** GitHub username to sync */
+  // github username to sync
   githubUsername: string;
 }
 

@@ -3,9 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
-// ---------------------------------------------------------------------------
-// Setup
-// ---------------------------------------------------------------------------
+// setup
 const TEST_DATABASE_URL = process.env["TEST_DATABASE_URL"];
 
 if (!TEST_DATABASE_URL) {
@@ -21,13 +19,14 @@ const pool = new Pool({
 const adapter = new PrismaPg(pool);
 const db = new PrismaClient({ adapter });
 
-/** Creates a minimal test user and returns its id. */
+// creates a test user and returns id
 async function createTestUser(suffix = ""): Promise<string> {
   const user = await db.user.create({
     data: {
       email: `test${suffix}@example.com`,
       username: `testuser${suffix}`,
       name: "Test User",
+      targetCompanies: [],
     },
   });
   return user.id;
@@ -42,9 +41,7 @@ afterAll(async () => {
   await pool.end();
 });
 
-// ---------------------------------------------------------------------------
-// CHECK Constraint Tests
-// ---------------------------------------------------------------------------
+// check constraint tests
 describe("CHECK constraints — score values", () => {
   let userId: string;
 
@@ -85,7 +82,7 @@ describe("CHECK constraints — score values", () => {
   });
 
   it("rejects dsa_score = 101 on interview_scores", async () => {
-    // Need an interview session first
+    // setup session first
     const session = await db.interviewSession.create({
       data: {
         userId: userId,
@@ -103,7 +100,7 @@ describe("CHECK constraints — score values", () => {
       `,
     ).rejects.toThrow();
 
-    // Cleanup
+    // cleanup session
     await db.interviewSession.delete({ where: { id: session.id } });
   });
 
@@ -127,9 +124,7 @@ describe("CHECK constraints — score values", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// CASCADE DELETE Tests
-// ---------------------------------------------------------------------------
+// cascade delete tests
 describe("CASCADE DELETE — deleting a User removes all dependent rows", () => {
   let userId: string;
   let sessionId: string;
@@ -137,7 +132,7 @@ describe("CASCADE DELETE — deleting a User removes all dependent rows", () => 
   beforeAll(async () => {
     userId = await createTestUser("_cascade");
 
-    // Account
+    // account
     await db.account.create({
       data: {
         userId,
@@ -146,7 +141,7 @@ describe("CASCADE DELETE — deleting a User removes all dependent rows", () => 
       },
     });
 
-    // Session
+    // session
     await db.session.create({
       data: {
         userId,
@@ -155,17 +150,17 @@ describe("CASCADE DELETE — deleting a User removes all dependent rows", () => 
       },
     });
 
-    // GithubProfile
+    // github profile
     await db.githubProfile.create({
       data: { userId, githubUsername: "testuser_cascade" },
     });
 
-    // LeetcodeProfile
+    // leetcode profile
     await db.leetcodeProfile.create({
       data: { userId, leetcodeUsername: "leettest_cascade" },
     });
 
-    // Resume
+    // resume
     await db.resume.create({
       data: {
         userId,
@@ -218,12 +213,12 @@ describe("CASCADE DELETE — deleting a User removes all dependent rows", () => 
       },
     });
 
-    // HiringReadinessScore
+    // hiring score
     await db.hiringReadinessScore.create({
       data: { userId },
     });
 
-    // UserSettings
+    // user settings
     await db.userSettings.create({
       data: { userId },
     });
@@ -296,7 +291,7 @@ describe("CASCADE DELETE — deleting a User removes all dependent rows", () => 
   });
 
   it("preserves audit_log rows (SET NULL, not CASCADE)", async () => {
-    // First create an audit log for this user, then confirm it still exists after deletion
+    // check audit log survives user deletion
     const log = await db.auditLog.create({
       data: {
         action: "test.audit_log_preservation",
@@ -308,9 +303,7 @@ describe("CASCADE DELETE — deleting a User removes all dependent rows", () => 
   });
 });
 
-// ---------------------------------------------------------------------------
-// Partial Index Existence Tests
-// ---------------------------------------------------------------------------
+// partial index existence tests
 describe("Partial indexes — exist in pg_indexes", () => {
   it("idx_interview_sessions_user_completed exists", async () => {
     const result = await db.$queryRaw<Array<{ indexname: string }>>`
@@ -358,9 +351,7 @@ describe("Partial indexes — exist in pg_indexes", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// ProblemBank → InterviewProblem FK Test
-// ---------------------------------------------------------------------------
+// problem bank fk tests
 describe("ProblemBank FK — interview_problems.problem_bank_id", () => {
   let adminUserId: string;
   let problemBankId: string;
@@ -419,7 +410,7 @@ describe("ProblemBank FK — interview_problems.problem_bank_id", () => {
   });
 
   it("sets problem_bank_id to NULL (not cascade delete) when bank problem is deleted", async () => {
-    // Create a separate session + problem linked to the bank entry
+    // separate session linked to problem bank
     const s2 = await db.interviewSession.create({
       data: {
         userId: sessionUserId,

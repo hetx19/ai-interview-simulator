@@ -5,17 +5,13 @@ import type {
   Resume as PrismaResume,
 } from "@prisma/client";
 
-// ---------------------------------------------------------------------------
-// Re-exported Prisma types
-// ---------------------------------------------------------------------------
+// prisma re-exports
 export type HiringReadinessScore = PrismaHiringReadinessScore;
 export type GithubProfile = PrismaGithubProfile;
 export type LeetcodeProfile = PrismaLeetcodeProfile;
 export type Resume = PrismaResume;
 
-// ---------------------------------------------------------------------------
-// Domain enums
-// ---------------------------------------------------------------------------
+// domain enums
 export const HIRING_LEVEL = [
   "not_ready",
   "building",
@@ -33,18 +29,16 @@ export const RESUME_ANALYSIS_STATUS = [
 ] as const;
 export type ResumeAnalysisStatus = (typeof RESUME_ANALYSIS_STATUS)[number];
 
-// ---------------------------------------------------------------------------
-// Score component weights
-// ---------------------------------------------------------------------------
+// score components
 export interface ScoreComponents {
-  github?: number | null; // 0–100
-  leetcode?: number | null; // 0–100
-  resume?: number | null; // 0–100
-  interview?: number | null; // 0–100
+  github?: number | null; // 0-100
+  leetcode?: number | null; // 0-100
+  resume?: number | null; // 0-100
+  interview?: number | null; // 0-100
 }
 
 export interface ComputedHiringScore {
-  overallScore: number; // 0–100
+  overallScore: number; // 0-100
   level: HiringLevel;
   components: ScoreComponents;
   roadmap: RoadmapWeek[];
