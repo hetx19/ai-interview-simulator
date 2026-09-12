@@ -35,6 +35,7 @@ export default defineConfig({
     env: {
       TEST_DATABASE_URL: resolvedDb,
       DATABASE_URL: resolvedDb,
+      QSTASH_TOKEN: process.env["QSTASH_TOKEN"] || "mock_qstash_token",
       SKIP_ENV_VALIDATION: "true",
       VITEST: "true",
     },

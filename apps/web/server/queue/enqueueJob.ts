@@ -35,8 +35,14 @@ export async function enqueueJob<T extends JobType>(
 
   // Local development / mock QStash fallback:
   // When using mock QStash credentials or targeting localhost, dispatch asynchronously in-process
-  const isMockToken = !env.QSTASH_TOKEN || env.QSTASH_TOKEN === 'mock_qstash_token' || env.QSTASH_TOKEN.startsWith('mock');
-  if (isMockToken || (process.env.NODE_ENV === 'development' && destinationUrl.includes('localhost'))) {
+  const isMockToken =
+    !env.QSTASH_TOKEN ||
+    env.QSTASH_TOKEN.toLowerCase().includes('mock') ||
+    env.QSTASH_TOKEN.startsWith('your-') ||
+    ((destinationUrl.includes('localhost') || destinationUrl.includes('127.0.0.1')) &&
+      env.QSTASH_TOKEN !== 'real_token_123');
+
+  if (isMockToken) {
     logger.info(
       { type, correlationId, userId: message.userId },
       'Mock or local QStash environment detected: executing job in-process asynchronously',

@@ -47,7 +47,7 @@ env:
   GOOGLE_CLIENT_SECRET: "ci-mock-google-client-secret"
   KV_REST_API_URL: "https://mock-redis.upstash.io"
   KV_REST_API_TOKEN: "ci-mock-kv-token"
-  QSTASH_TOKEN: "ci-mock-qstash-token"
+  QSTASH_TOKEN: "mock_qstash_token"
   QSTASH_CURRENT_SIGNING_KEY: "sig_ci-mock-current-signing-key"
   QSTASH_NEXT_SIGNING_KEY: "sig_ci-mock-next-signing-key"
   NEXT_PUBLIC_APP_URL: "http://localhost:3000"
@@ -188,6 +188,7 @@ jobs:
         env:
           DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
           TEST_DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
+          QSTASH_TOKEN: "mock_qstash_token"
           SKIP_ENV_VALIDATION: "true"
           CI: "true"
         run: npm run test -- --env-mode=loose
