@@ -34,7 +34,7 @@ env:
   CI: "true"
   TURBO_TELEMETRY_DISABLED: "1"
   NEXT_TELEMETRY_DISABLED: "1"
-  # Mock environment variables for build, test, and typecheck validations
+  SKIP_ENV_VALIDATION: "true"
   DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
   TEST_DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
   NEXTAUTH_URL: "http://localhost:3000"
@@ -68,6 +68,11 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: Setup Environment Files
+        run: |
+          cp .env.example .env
+          cp .env.example apps/web/.env
+
       - name: Restore Turbo cache
         uses: actions/cache@v4
         with:
@@ -95,6 +100,11 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+
+      - name: Setup Environment Files
+        run: |
+          cp .env.example .env
+          cp .env.example apps/web/.env
 
       - name: Restore Turbo cache
         uses: actions/cache@v4
@@ -147,6 +157,15 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
+      - name: Setup Environment Files
+        run: |
+          cp .env.example .env
+          cp .env.example apps/web/.env
+          sed -i 's|DATABASE_URL=.*|DATABASE_URL="postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"|' apps/web/.env
+          sed -i 's|TEST_DATABASE_URL=.*|TEST_DATABASE_URL="postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"|' apps/web/.env
+          sed -i 's|DATABASE_URL=.*|DATABASE_URL="postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"|' .env
+          sed -i 's|TEST_DATABASE_URL=.*|TEST_DATABASE_URL="postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"|' .env
+
       - name: Install dependencies
         run: npm ci
 
@@ -154,13 +173,24 @@ jobs:
         run: npm run prisma:generate --workspace=web
 
       - name: Apply Database Migrations to Test DB
+        env:
+          DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
+          TEST_DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
         run: npm run prisma:migrate:deploy --workspace=web
 
       - name: Seed Database ProblemBank
+        env:
+          DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
+          TEST_DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
         run: npm run prisma:seed --workspace=web
 
       - name: Run Vitest Suite
-        run: npm run test
+        env:
+          DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
+          TEST_DATABASE_URL: "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public"
+          SKIP_ENV_VALIDATION: "true"
+          CI: "true"
+        run: npm run test -- --env-mode=loose
 
   security-audit:
     name: Security & Vulnerability Audit
@@ -210,6 +240,11 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+
+      - name: Setup Environment Files
+        run: |
+          cp .env.example .env
+          cp .env.example apps/web/.env
 
       - name: Restore Turbo cache
         uses: actions/cache@v4

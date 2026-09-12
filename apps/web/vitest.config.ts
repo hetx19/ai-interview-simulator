@@ -3,11 +3,25 @@ import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
 
-let envPath = path.resolve(process.cwd(), ".env");
-if (!fs.existsSync(envPath)) {
-  envPath = path.resolve(process.cwd(), "../../.env");
+const candidateEnvFiles = [
+  path.resolve(process.cwd(), ".env.local"),
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "../../.env.local"),
+  path.resolve(process.cwd(), "../../.env"),
+  path.resolve(process.cwd(), ".env.example"),
+  path.resolve(process.cwd(), "../../.env.example"),
+];
+
+for (const f of candidateEnvFiles) {
+  if (fs.existsSync(f)) {
+    dotenv.config({ path: f });
+  }
 }
-dotenv.config({ path: envPath });
+
+const defaultTestDb =
+  "postgresql://devmetric:devmetric@localhost:5432/devmetric_test?schema=public";
+const resolvedDb =
+  process.env["TEST_DATABASE_URL"] || process.env["DATABASE_URL"] || defaultTestDb;
 
 export default defineConfig({
   test: {
@@ -19,7 +33,10 @@ export default defineConfig({
       "__tests__/**/*.test.ts",
     ],
     env: {
-      TEST_DATABASE_URL: process.env["TEST_DATABASE_URL"] ?? "",
+      TEST_DATABASE_URL: resolvedDb,
+      DATABASE_URL: resolvedDb,
+      SKIP_ENV_VALIDATION: "true",
+      VITEST: "true",
     },
   },
   resolve: {

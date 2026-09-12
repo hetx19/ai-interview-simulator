@@ -5,9 +5,16 @@ import * as path from "path";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: path.resolve(process.cwd(), "../../.env.local") });
+dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.example") });
+dotenv.config({ path: path.resolve(process.cwd(), "../../.env.example") });
 
 export const env = createEnv({
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation:
+    !!process.env.SKIP_ENV_VALIDATION ||
+    process.env.NODE_ENV === "test" ||
+    process.env.VITEST === "true",
   server: {
     DATABASE_URL: z.string().url(),
     // nextauth

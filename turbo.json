@@ -1,5 +1,32 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "CI",
+    "DATABASE_URL",
+    "TEST_DATABASE_URL",
+    "NEXTAUTH_URL",
+    "NEXTAUTH_SECRET",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "GITHUB_TOKEN_ENCRYPTION_KEY",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "JWT_SECRET",
+    "KV_REST_API_URL",
+    "KV_REST_API_TOKEN",
+    "QSTASH_TOKEN",
+    "QSTASH_CURRENT_SIGNING_KEY",
+    "QSTASH_NEXT_SIGNING_KEY",
+    "NEXT_PUBLIC_APP_URL",
+    "CRON_SECRET",
+    "GROQ_API_KEY",
+    "GEMINI_API_KEY",
+    "GMAIL_USER",
+    "GMAIL_APP_PASSWORD",
+    "SKIP_ENV_VALIDATION",
+    "NEXT_OUTPUT_STANDALONE"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,7 +39,15 @@
       "dependsOn": ["^typecheck"]
     },
     "test": {
-      "dependsOn": ["^test"]
+      "dependsOn": ["^test"],
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "TEST_DATABASE_URL",
+        "NEXTAUTH_SECRET",
+        "JWT_SECRET",
+        "SKIP_ENV_VALIDATION",
+        "NODE_ENV"
+      ]
     },
     "dev": {
       "cache": false,
