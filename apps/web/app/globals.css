@@ -238,3 +238,40 @@
   vertical-align: middle;
 }
 
+/* ─── Subtle Dark Theme Scrollbar ────────────────────────────────────────── */
+.subtle-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(192, 193, 255, 0.25) transparent !important;
+}
+
+.subtle-scrollbar::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+}
+
+.subtle-scrollbar::-webkit-scrollbar-track {
+  background: rgba(13, 13, 21, 0.4) !important;
+  border-radius: 9999px !important;
+}
+
+.subtle-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(192, 193, 255, 0.25) !important;
+  border-radius: 9999px !important;
+  transition: background-color 150ms ease;
+}
+
+.subtle-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(192, 193, 255, 0.5) !important;
+}
+
+/* ─── Hide Scrollbar Utility ──────────────────────────────────────────────── */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none !important;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+
+

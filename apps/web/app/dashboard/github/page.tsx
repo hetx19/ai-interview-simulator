@@ -483,7 +483,7 @@ export default function GitHubAnalyticsPage() {
             </div>
 
             {/* targets & actions */}
-            <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 flex-wrap sm:flex-nowrap">
               <div className="hidden xl:flex flex-col text-right pr-6 border-r border-[#46464f]/30">
                 <span className="text-[10px] leading-[14px] font-[600] tracking-[0.06em] text-[#918f9a] uppercase">Benchmark</span>
                 <span className="text-[16px] leading-[24px] font-[500] text-[#e4e1ed]">Target: Staff Engineer</span>
@@ -492,9 +492,9 @@ export default function GitHubAnalyticsPage() {
                 type="button"
                 onClick={handleSync}
                 disabled={isSyncing}
-                className="flex-1 md:flex-initial px-3 py-2 rounded-lg bg-[#292932] hover:bg-[#393841] text-[#e4e1ed] text-[12px] leading-[18px] font-medium flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 sm:flex-initial h-10 px-4 rounded-lg bg-[#292932] hover:bg-[#393841] text-[#e4e1ed] border border-[#46464f]/30 hover:border-[#46464f]/60 text-xs sm:text-sm font-medium inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className={`material-symbols-outlined text-sm text-[#e1dfff] ${isSyncing ? "animate-spin" : ""}`}>
+                <span className={`material-symbols-outlined text-[18px] text-[#e1dfff] shrink-0 leading-none ${isSyncing ? "animate-spin" : ""}`}>
                   sync
                 </span>
                 <span>{isSyncing ? "Re-indexing..." : "Force Re-index"}</span>
@@ -502,9 +502,9 @@ export default function GitHubAnalyticsPage() {
               <button
                 type="button"
                 onClick={handleExportReport}
-                className="flex-1 md:flex-initial px-6 py-2 rounded-lg bg-[#c0c1ff] text-[#131449] text-[16px] leading-[24px] font-[600] hover:bg-[#e1dfff] transition-all shadow-[0_0_16px_rgba(192,193,255,0.4)] active:scale-95 flex items-center justify-center gap-1.5"
+                className="flex-1 sm:flex-initial h-10 px-5 sm:px-6 rounded-lg bg-[#c0c1ff] hover:bg-[#e1dfff] text-[#131449] text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all shadow-[0_0_16px_rgba(192,193,255,0.4)] active:scale-95"
               >
-                <span className="material-symbols-outlined text-base">file_download</span>
+                <span className="material-symbols-outlined text-[18px] shrink-0 leading-none">file_download</span>
                 <span>Export Report</span>
               </button>
             </div>

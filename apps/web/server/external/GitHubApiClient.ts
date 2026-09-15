@@ -184,23 +184,74 @@ export class GitHubApiClient {
    **/
   public static readonly MAX_PAGINATION_PAGES = 10;
 
+  /**
+   * Fetches public repositories for the specified user or the authenticated user.
+   *
+   * Note: We intentionally call GET /users/{username}/repos (public repos endpoint)
+   * rather than GET /user/repos.
+   * Reason: The OAuth scope configured in options.ts is "read:user user:email",
+   * which does NOT include 'public_repo' or 'repo'. Under GitHub's OAuth permissions,
+   * calling GET /user/repos with this scope returns an empty array or 403 against
+   * real GitHub OAuth tokens in production. GET /users/{username}/repos retrieves public
+   * repositories for the user without requiring elevated scopes.
+   * Do NOT revert this back to /user/repos unless the OAuth scope in options.ts is
+   * explicitly widened to include 'public_repo' or 'repo'.
+   **/
   public async getRepositories(
     token: string,
-    perPage = 100,
+    usernameOrPerPage?: string | number,
+    perPageOrOptions?:
+      | number
+      | {
+          filterForks?: boolean;
+          excludePrivate?: boolean;
+          maxPages?: number;
+        },
     options?: {
       filterForks?: boolean;
       excludePrivate?: boolean;
       maxPages?: number;
     },
   ): Promise<GitHubRepo[]> {
+    let username: string | undefined;
+    let perPage = 100;
+    let effectiveOptions = options;
+
+    if (typeof usernameOrPerPage === "string") {
+      username = usernameOrPerPage;
+      if (typeof perPageOrOptions === "number") {
+        perPage = perPageOrOptions;
+      }
+      effectiveOptions =
+        options ??
+        (typeof perPageOrOptions === "object" ? perPageOrOptions : undefined);
+    } else if (typeof usernameOrPerPage === "number") {
+      perPage = usernameOrPerPage;
+      effectiveOptions =
+        (typeof perPageOrOptions === "object" ? perPageOrOptions : undefined) ??
+        options;
+    } else if (typeof perPageOrOptions === "number") {
+      perPage = perPageOrOptions;
+    }
+
+    // Do not assume username is already available in calling context.
+    // If not provided, fetch the authenticated user profile to resolve their GitHub login.
+    if (!username) {
+      const profile = await this.getUserProfile(token);
+      username = profile.login;
+    }
+
     const allRepos: GitHubRepo[] = [];
     let page = 1;
-    const maxPages = options?.maxPages ?? GitHubApiClient.MAX_PAGINATION_PAGES;
+    const maxPages =
+      effectiveOptions?.maxPages ?? GitHubApiClient.MAX_PAGINATION_PAGES;
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
+    const encodedUsername = encodeURIComponent(username);
+
     while (page <= maxPages) {
-      const url = `${this.baseUrl}/user/repos?per_page=${perPage}&page=${page}&sort=pushed&direction=desc&affiliation=owner,collaborator`;
+      const url = `${this.baseUrl}/users/${encodedUsername}/repos?per_page=${perPage}&page=${page}&sort=pushed&direction=desc`;
       const res = await this.fetchWithRetry(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -215,12 +266,12 @@ export class GitHubApiClient {
       }
 
       for (const r of data) {
-        if (options?.filterForks && r.fork) {
+        if (effectiveOptions?.filterForks && r.fork) {
           continue;
         }
 
         const isPrivate = Boolean(r.private);
-        if (options?.excludePrivate && isPrivate) {
+        if (effectiveOptions?.excludePrivate && isPrivate) {
           continue;
         }
 

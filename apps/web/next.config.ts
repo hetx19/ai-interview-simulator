@@ -7,7 +7,7 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: isDev
       ? "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * data:; connect-src *; font-src 'self' https://fonts.gstatic.com data:"
-      : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://avatars.githubusercontent.com https://lh3.googleusercontent.com; connect-src 'self' https://api.github.com https://*.upstash.io; font-src 'self' https://fonts.gstatic.com data:",
+      : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://assets.leetcode.com https://leetcode.com; connect-src 'self' https://api.github.com https://*.upstash.io; font-src 'self' https://fonts.gstatic.com data:",
   },
   {
     key: "Strict-Transport-Security",

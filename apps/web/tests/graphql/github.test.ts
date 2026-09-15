@@ -182,7 +182,7 @@ describe('GraphQL GitHub Analytics (githubProfile & syncGitHub)', () => {
     expect(json.errors[0]?.message).toContain('once every 24 hours');
   });
 
-  it('6. Allows force sync even when within 24-hour cooldown', async () => {
+  it('6. Rate limiting is always enforced — no force bypass', async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce({
       user: { id: user.id, email: user.email },
     } as any);
@@ -191,17 +191,16 @@ describe('GraphQL GitHub Analytics (githubProfile & syncGitHub)', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query: 'mutation { syncGitHub(force: true) { jobId status message } }',
+        query: 'mutation { syncGitHub { jobId status message } }',
       }),
     });
 
     const response = await POST(request);
     const json = await response.json();
 
-    expect(json.errors).toBeUndefined();
-    expect(json.data?.syncGitHub).toMatchObject({
-      status: 'QUEUED',
-    });
+    // When within 24h cooldown, the request should be rate limited
+    expect(json.errors).toBeDefined();
+    expect(json.errors[0]?.extensions?.code).toBe('RATE_LIMITED');
   });
 
   it('7. Returns UNAUTHENTICATED when user has no linked GitHub account', async () => {

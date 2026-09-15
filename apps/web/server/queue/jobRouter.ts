@@ -2,6 +2,7 @@ import { JobType, QStashMessage } from './jobTypes';
 import { logger } from '@/server/logging/logger';
 import { getDecryptedAccessToken } from '@/server/auth/encryption';
 import { GithubService } from '@/server/services/GithubService';
+import { LeetcodeService } from '@/server/services/LeetcodeService';
 import { invalidateByTag, invalidateCache } from '@/server/cache/redisClient';
 import { cacheKeys, cacheTags } from '@/lib/cache/cacheKeys';
 import { AppError } from '@/server/graphql/errors';
@@ -63,9 +64,27 @@ export async function dispatchJob(message: QStashMessage<any>): Promise<void> {
       await invalidateByTag(cacheTags.user(userId));
       break;
     }
-    case JobType.LEETCODE_SYNC:
-      logger.debug({ payload: message.payload }, 'Leetcode sync job received (stub)');
+    case JobType.LEETCODE_SYNC: {
+      const { userId, leetcodeUsername } = message.payload;
+      const leetcodeService = new LeetcodeService(userId);
+      let usernameToSync = leetcodeUsername;
+      if (!usernameToSync) {
+        const existing = await leetcodeService.getProfile();
+        usernameToSync = existing?.leetcodeUsername;
+      }
+      if (!usernameToSync) {
+        logger.error(
+          { userId, correlationId: message.correlationId },
+          'No LeetCode username available for user sync job',
+        );
+        throw new AppError('VALIDATION_ERROR', `No LeetCode username available for user ${userId}`);
+      }
+
+      await leetcodeService.syncProfile(usernameToSync);
+      await invalidateCache(cacheKeys.leetcodeProfile(userId));
+      await invalidateByTag(cacheTags.user(userId));
       break;
+    }
     case JobType.RESUME_ANALYSIS:
       logger.debug({ payload: message.payload }, 'Resume analysis job received (stub)');
       break;

@@ -12,6 +12,17 @@ import {
 import { GitHubRepo, ContributionCalendar } from '@/server/external/GitHubApiClient';
 import { AppError } from '@/server/graphql/errors';
 
+vi.mock('@/server/cache/redisClient', () => ({
+  redis: {
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+  },
+  getCached: vi.fn().mockImplementation((_key: string, fetcher: () => any) => fetcher()),
+  invalidateCache: vi.fn().mockResolvedValue(undefined),
+  invalidateByTag: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe('GithubService Scoring Engine', () => {
   it('1. Returns 0 across all metrics when user has 0 repositories and no contributions', () => {
     const scores = calculateOverallScores([], null, {});
@@ -332,7 +343,7 @@ describe('GithubService Scoring Engine', () => {
       githubScore: 85,
     });
 
-    const result = await service.syncProfile('fake_token', { force: false });
+    const result = await service.syncProfile('fake_token');
     expect(result.githubScore).toBe(85);
   });
 
@@ -381,7 +392,7 @@ describe('GithubService Scoring Engine', () => {
       lastSyncedAt: new Date(Date.now() - 30 * 60 * 60 * 1000), // > 24h ago
     });
 
-    const profile = await service.syncProfile('fake_token', { force: true });
+    const profile = await service.syncProfile('fake_token');
     expect(profile.githubScore).toBe(82);
     expect(profile.recommendations?.some((r) => r.includes('[Stale Data]'))).toBe(true);
   });
@@ -398,7 +409,7 @@ describe('GithubService Scoring Engine', () => {
 
     vi.spyOn(mockRepo, 'findByUserId').mockResolvedValueOnce(null);
 
-    await expect(service.syncProfile('expired_token', { force: true })).rejects.toMatchObject({
+    await expect(service.syncProfile('expired_token')).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
       message: expect.stringContaining('reconnect'),
     });

@@ -48,3 +48,23 @@ export interface SyncJobResponseGql {
   status: string;
   message: string;
 }
+
+export interface LeetCodeProfileGql {
+  id: string;
+  leetcodeUsername: string;
+  leetcodeScore: number | null;
+  totalSolved: number;
+  easySolved: number;
+  mediumSolved: number;
+  hardSolved: number;
+  contestRating: number | null;
+  contestRanking: number | null;
+  streakDays: number;
+  topicPerformance: Record<string, any> | null;
+  weakTopics: string[];
+  recommendations: Record<string, any>[] | null;
+  contestHistory: Record<string, any>[] | null;
+  lastSyncedAt: Date | null;
+}
+
+export type LeetcodeProfileGql = LeetCodeProfileGql;

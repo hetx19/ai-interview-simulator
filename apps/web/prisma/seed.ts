@@ -8,30 +8,30 @@ const prisma = new PrismaClient({ adapter });
 
 const INITIAL_PROBLEMS = [
   {
-    title: "Two Sum",
+    title: "Pair Sum Index Locator",
     difficulty: "easy",
     topic: "arrays",
     description:
-      "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.",
+      "You are given an integer array `values` and a target integer `goal`. Find two distinct indices `i` and `j` in the array such that `values[i] + values[j] == goal`.\n\nReturn the pair of indices as an array `[i, j]`. You may assume each input has exactly one valid pair, and the same element cannot be used twice. The indices may be returned in any order.",
     optimalTimeComplexity: "O(n)",
     optimalSpaceComplexity: "O(n)",
     tags: ["arrays", "hash-table", "two-pointers"],
     constraints: [
-      "2 <= nums.length <= 10^4",
-      "-10^9 <= nums[i] <= 10^9",
-      "-10^9 <= target <= 10^9",
-      "Only one valid answer exists.",
+      "2 <= values.length <= 10^4",
+      "-10^9 <= values[i] <= 10^9",
+      "-10^9 <= goal <= 10^9",
+      "Exactly one valid pair of indices exists.",
     ],
     examples: [
       {
-        input: "nums = [2,7,11,15], target = 9",
+        input: "values = [2,7,11,15], goal = 9",
         output: "[0,1]",
-        explanation: "Because nums[0] + nums[1] == 9, we return [0, 1].",
+        explanation: "values[0] + values[1] == 2 + 7 == 9, so we return [0, 1].",
       },
       {
-        input: "nums = [3,2,4], target = 6",
+        input: "values = [3,2,4], goal = 6",
         output: "[1,2]",
-        explanation: "nums[1] + nums[2] == 6, we return [1, 2].",
+        explanation: "values[1] + values[2] == 2 + 4 == 6, so we return [1, 2].",
       },
     ],
     testCasesVisible: [
@@ -44,17 +44,17 @@ const INITIAL_PROBLEMS = [
       { input: { nums: [0, 4, 3, 0], target: 0 }, expected_output: [0, 3] },
     ],
     hints: [
-      { level: 1, text: "Can you use a hash map to store elements you have already seen?" },
-      { level: 2, text: "For each element x, check if (target - x) exists in your map." },
+      { level: 1, text: "Consider storing previously visited values in a hash map for O(1) complement lookups." },
+      { level: 2, text: "For each element x, check whether (goal - x) has already been recorded and retrieve its index." },
     ],
     isActive: true,
   },
   {
-    title: "LRU Cache",
+    title: "Bounded LRU Cache Structure",
     difficulty: "medium",
     topic: "data-structures",
     description:
-      "Design a data structure that follows the constraints of a Least Recently Used (LRU) cache.\n\nImplement the `LRUCache` class with `get(key)` and `put(key, value)` operations in O(1) average time complexity.",
+      "Design a fixed-capacity key-value store that evicts the least recently used entry when the capacity limit is exceeded.\n\nImplement the `BoundedCache` class:\n- `BoundedCache(int capacity)` — Initializes the cache with a positive capacity.\n- `int get(int key)` — Returns the value mapped to `key` if it exists in the cache (marking it as recently used), or `-1` if the key is absent.\n- `void put(int key, int value)` — Inserts or updates the key-value pair. If inserting causes the cache to exceed its capacity, the least recently accessed entry must be evicted before the new entry is stored.\n\nBoth `get` and `put` must operate in O(1) average time complexity.",
     optimalTimeComplexity: "O(1)",
     optimalSpaceComplexity: "O(capacity)",
     tags: ["hash-table", "linked-list", "doubly-linked-list", "design"],
@@ -67,9 +67,9 @@ const INITIAL_PROBLEMS = [
     examples: [
       {
         input:
-          '["LRUCache", "put", "put", "get", "put", "get", "put", "get", "get", "get"]\n[[2], [1, 1], [2, 2], [1], [3, 3], [2], [4, 4], [1], [3], [4]]',
+          '["BoundedCache", "put", "put", "get", "put", "get", "put", "get", "get", "get"]\n[[2], [1, 1], [2, 2], [1], [3, 3], [2], [4, 4], [1], [3], [4]]',
         output: "[null, null, null, 1, null, -1, null, -1, 3, 4]",
-        explanation: "Standard LRU cache eviction lifecycle when capacity is exceeded.",
+        explanation: "After inserting keys 1 and 2, accessing key 1 refreshes it. Inserting key 3 evicts key 2 (least recently used). Inserting key 4 evicts key 1. Final lookups confirm eviction order.",
       },
     ],
     testCasesVisible: [
@@ -93,35 +93,35 @@ const INITIAL_PROBLEMS = [
       },
     ],
     hints: [
-      { level: 1, text: "Combine a hash map with a doubly linked list." },
-      { level: 2, text: "The head holds the most recently used and the tail holds the least recently used." },
+      { level: 1, text: "Pair a hash map (for O(1) key lookup) with a doubly linked list (for O(1) insertion and removal)." },
+      { level: 2, text: "Maintain the most recently accessed node at the head and the least recently used at the tail. On eviction, remove the tail node." },
     ],
     isActive: true,
   },
   {
-    title: "Coin Change",
+    title: "Minimum Denomination Exchange",
     difficulty: "medium",
     topic: "dp",
     description:
-      "You are given an integer array `coins` representing coins of different denominations and an integer `amount` representing a total amount of money.\n\nReturn the fewest number of coins that you need to make up that amount. If that amount of money cannot be made up by any combination of the coins, return `-1`.",
-    optimalTimeComplexity: "O(amount * coins.length)",
-    optimalSpaceComplexity: "O(amount)",
+      "You are given an array of positive integers `denominations`, each representing a coin denomination with unlimited supply, and a non-negative integer `target` representing the total amount you need to assemble.\n\nReturn the minimum number of coins required to form the exact `target` amount. If no combination of the given denominations can produce the target, return `-1`.\n\nYou may use each denomination as many times as needed.",
+    optimalTimeComplexity: "O(target * denominations.length)",
+    optimalSpaceComplexity: "O(target)",
     tags: ["dynamic-programming", "bfs"],
     constraints: [
-      "1 <= coins.length <= 12",
-      "1 <= coins[i] <= 2^31 - 1",
-      "0 <= amount <= 10^4",
+      "1 <= denominations.length <= 12",
+      "1 <= denominations[i] <= 2^31 - 1",
+      "0 <= target <= 10^4",
     ],
     examples: [
       {
-        input: "coins = [1,2,5], amount = 11",
+        input: "denominations = [1,2,5], target = 11",
         output: "3",
-        explanation: "11 = 5 + 5 + 1",
+        explanation: "11 = 5 + 5 + 1 uses 3 coins, which is the minimum possible.",
       },
       {
-        input: "coins = [2], amount = 3",
+        input: "denominations = [2], target = 3",
         output: "-1",
-        explanation: "The amount cannot be formed with the given coins.",
+        explanation: "There is no way to combine denomination 2 to reach exactly 3.",
       },
     ],
     testCasesVisible: [
@@ -134,37 +134,37 @@ const INITIAL_PROBLEMS = [
       { input: { coins: [2, 5, 10, 1], amount: 27 }, expected_output: 4 },
     ],
     hints: [
-      { level: 1, text: "Think about bottom-up dynamic programming." },
-      { level: 2, text: "Let dp[i] represent the minimum coins required for amount i. dp[i] = min(dp[i], dp[i - coin] + 1)." },
+      { level: 1, text: "Build a solution bottom-up: define dp[i] as the fewest coins needed to form amount i." },
+      { level: 2, text: "For each amount i, try every denomination d and set dp[i] = min(dp[i], dp[i - d] + 1) when i - d >= 0." },
     ],
     isActive: true,
   },
   {
-    title: "Course Schedule",
+    title: "Topological Dependency Resolver",
     difficulty: "medium",
     topic: "graphs",
     description:
-      "There are a total of `numCourses` courses you have to take, labeled from `0` to `numCourses - 1`. You are given an array `prerequisites` where `prerequisites[i] = [ai, bi]` indicates that you must take course `bi` first if you want to take course `ai`.\n\nReturn `true` if you can finish all courses. Otherwise, return `false`.",
+      "You are managing a build system with `numTasks` tasks labeled from `0` to `numTasks - 1`. Some tasks depend on others: `dependencies[i] = [a, b]` means task `b` must complete before task `a` can begin.\n\nDetermine whether it is possible to complete all tasks. Return `true` if a valid execution order exists, or `false` if circular dependencies make completion impossible.",
     optimalTimeComplexity: "O(V + E)",
     optimalSpaceComplexity: "O(V + E)",
     tags: ["graphs", "dfs", "bfs", "topological-sort"],
     constraints: [
-      "1 <= numCourses <= 2000",
-      "0 <= prerequisites.length <= 5000",
-      "prerequisites[i].length == 2",
-      "0 <= ai, bi < numCourses",
-      "All pairs [ai, bi] are unique.",
+      "1 <= numTasks <= 2000",
+      "0 <= dependencies.length <= 5000",
+      "dependencies[i].length == 2",
+      "0 <= a, b < numTasks",
+      "All dependency pairs [a, b] are unique.",
     ],
     examples: [
       {
-        input: "numCourses = 2, prerequisites = [[1,0]]",
+        input: "numTasks = 2, dependencies = [[1,0]]",
         output: "true",
-        explanation: "To take course 1 you must have finished course 0. So it is possible.",
+        explanation: "Task 0 has no dependencies and executes first, then task 1 can proceed.",
       },
       {
-        input: "numCourses = 2, prerequisites = [[1,0],[0,1]]",
+        input: "numTasks = 2, dependencies = [[1,0],[0,1]]",
         output: "false",
-        explanation: "Cycle detected: 1 depends on 0 and 0 depends on 1.",
+        explanation: "Task 0 depends on task 1 and vice versa — a circular dependency makes completion impossible.",
       },
     ],
     testCasesVisible: [
@@ -176,17 +176,17 @@ const INITIAL_PROBLEMS = [
       { input: { numCourses: 3, prerequisites: [[0, 1], [1, 2], [2, 0]] }, expected_output: false },
     ],
     hints: [
-      { level: 1, text: "Can you model this as finding a cycle in a directed graph?" },
-      { level: 2, text: "Use Kahn's algorithm (indegree BFS) or 3-state DFS (unvisited, visiting, visited)." },
+      { level: 1, text: "Model the tasks as vertices and dependencies as directed edges. The problem reduces to detecting a cycle in a directed graph." },
+      { level: 2, text: "Apply Kahn's algorithm (indegree-based BFS) or use three-state DFS coloring (unvisited, in-progress, completed) to detect back edges." },
     ],
     isActive: true,
   },
   {
-    title: "Trapping Rain Water",
+    title: "Elevation Chamber Water Retention",
     difficulty: "hard",
     topic: "arrays",
     description:
-      "Given `n` non-negative integers representing an elevation map where the width of each bar is `1`, compute how much water it can trap after raining.",
+      "You are given an array of `n` non-negative integers representing a cross-section of terrain where each element is the height of a column with unit width.\n\nAfter a heavy rainfall, water collects in the valleys between columns. Compute the total volume of water retained between the columns.",
     optimalTimeComplexity: "O(n)",
     optimalSpaceComplexity: "O(1)",
     tags: ["arrays", "two-pointers", "stack", "monotonic-stack"],
@@ -199,7 +199,7 @@ const INITIAL_PROBLEMS = [
       {
         input: "height = [0,1,0,2,1,0,1,3,2,1,2,1]",
         output: "6",
-        explanation: "The elevation map traps 6 units of rain water.",
+        explanation: "Water fills in the gaps between peaks. The total retained volume is 6 units.",
       },
     ],
     testCasesVisible: [
@@ -211,17 +211,17 @@ const INITIAL_PROBLEMS = [
       { input: { height: [5, 4, 1, 2] }, expected_output: 1 },
     ],
     hints: [
-      { level: 1, text: "Water trapped at index i is determined by min(max_left, max_right) - height[i]." },
-      { level: 2, text: "Use two pointers from left and right inward to achieve O(1) auxiliary space." },
+      { level: 1, text: "The water level at any index i is bounded by min(tallest_left, tallest_right) - height[i]." },
+      { level: 2, text: "Use two pointers converging from opposite ends to compute the bounded water level in O(1) auxiliary space." },
     ],
     isActive: true,
   },
   {
-    title: "Binary Tree Level Order Traversal",
+    title: "Level-by-Level Tree Hierarchy Scanner",
     difficulty: "medium",
     topic: "trees",
     description:
-      "Given the `root` of a binary tree, return the level order traversal of its nodes' values (i.e., from left to right, level by level).",
+      "Given the `root` of a binary tree, produce a level-order scan of all node values.\n\nReturn a nested array where each inner array contains the values of nodes at the same depth, ordered from left to right. The first inner array contains only the root value, the second contains values at depth 1, and so on.\n\nIf the tree is empty, return an empty array.",
     optimalTimeComplexity: "O(n)",
     optimalSpaceComplexity: "O(n)",
     tags: ["trees", "bfs", "queue", "breadth-first-search"],
@@ -233,17 +233,17 @@ const INITIAL_PROBLEMS = [
       {
         input: "root = [3,9,20,null,null,15,7]",
         output: "[[3],[9,20],[15,7]]",
-        explanation: "Level 0: [3], Level 1: [9, 20], Level 2: [15, 7].",
+        explanation: "Depth 0: [3], Depth 1: [9, 20], Depth 2: [15, 7].",
       },
       {
         input: "root = [1]",
         output: "[[1]]",
-        explanation: "Single node — one level.",
+        explanation: "A single-node tree has one level containing one value.",
       },
       {
         input: "root = []",
         output: "[]",
-        explanation: "Empty tree returns an empty array.",
+        explanation: "An empty tree returns an empty result.",
       },
     ],
     testCasesVisible: [
@@ -267,11 +267,11 @@ const INITIAL_PROBLEMS = [
     hints: [
       {
         level: 1,
-        text: "Use a queue (BFS). Start with the root. For each level, drain all nodes currently in the queue before enqueuing the next level.",
+        text: "Use a queue (BFS). Begin by enqueuing the root. For each level, process all nodes currently in the queue before enqueuing their children.",
       },
       {
         level: 2,
-        text: "Snapshot the queue size at the beginning of each iteration — that tells you exactly how many nodes belong to the current level.",
+        text: "Capture the queue size at the start of each iteration — that count tells you exactly how many nodes belong to the current depth level.",
       },
     ],
     isActive: true,

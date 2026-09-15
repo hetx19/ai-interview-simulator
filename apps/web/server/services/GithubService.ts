@@ -292,6 +292,29 @@ export class GithubService {
   }
 
   /**
+   * Acquires a 2-minute distributed lock to reject concurrent sync requests.
+   * Throws AppError('RATE_LIMITED') if another sync is already in progress.
+   */
+  public async acquireSyncLock(): Promise<void> {
+    const lockKey = `sync:lock:github:${this.userId}`;
+    const acquired = await redis.set(lockKey, '1', { nx: true, ex: 120 });
+    if (!acquired) {
+      throw new AppError(
+        'RATE_LIMITED',
+        'A GitHub sync is already in progress. Please wait for it to complete.',
+      );
+    }
+  }
+
+  /**
+   * Releases the distributed sync lock.
+   */
+  public async releaseSyncLock(): Promise<void> {
+    const lockKey = `sync:lock:github:${this.userId}`;
+    await redis.del(lockKey);
+  }
+
+  /**
    * Enforces the 24-hour application rate limit on sync triggers.
    * Throws AppError('RATE_LIMITED') with retry-after details if cooldown is active.
    */
@@ -314,13 +337,17 @@ export class GithubService {
 
   public async syncProfile(
     token: string,
-    options?: { force?: boolean; throwOnRateLimit?: boolean },
+    options?: { throwOnRateLimit?: boolean },
   ): Promise<GithubProfile> {
+    // Acquire distributed lock to prevent concurrent sync floods
+    await this.acquireSyncLock();
+
+    try {
     const existing = await this.repository.findByUserId(this.userId);
     const now = new Date();
 
     // 24-hour resync limit check
-    if (!options?.force && existing?.lastSyncedAt) {
+    if (existing?.lastSyncedAt) {
       const elapsedMs = now.getTime() - new Date(existing.lastSyncedAt).getTime();
       const twentyFourHoursMs = 24 * 60 * 60 * 1000;
       if (elapsedMs < twentyFourHoursMs) {
@@ -353,8 +380,17 @@ export class GithubService {
       // 1. Fetch user profile
       userProfile = await this.apiClient.getUserProfile(token);
 
-      // 2. Fetch user repositories (tracks public and private flags)
-      repos = await this.apiClient.getRepositories(token, 100);
+      // Confirm the username passed matches the authenticated GitHub account's login
+      const targetUsername = userProfile.login;
+      if (existing?.githubUsername && existing.githubUsername.toLowerCase() !== targetUsername.toLowerCase()) {
+        logger.warn(
+          { userId: this.userId, storedUsername: existing.githubUsername, authenticatedLogin: targetUsername },
+          'GitHub login differs from stored githubUsername; using authenticated account login',
+        );
+      }
+
+      // 2. Fetch user repositories (tracks public and private flags) via public repos endpoint
+      repos = await this.apiClient.getRepositories(token, targetUsername, 100, { excludePrivate: true });
 
       // 3. Fetch contribution calendar via GraphQL
       calendar = await this.apiClient.getContributionCalendar(token, userProfile.login);
@@ -463,5 +499,8 @@ export class GithubService {
     );
 
     return profile;
+    } finally {
+      await this.releaseSyncLock();
+    }
   }
 }

@@ -66,10 +66,10 @@ Browser → Next.js Middleware (edge auth guard)
 
 DevMetric uses **NextAuth v4** with a **database session strategy** and two OAuth providers:
 
-| Provider | Scope | Purpose |
-|----------|-------|---------|
-| GitHub | `read:user user:email public_repo` | Verified developer identity + commit telemetry |
-| Google | `openid email profile` | Verified email SSO |
+| Provider | Scope                  | Purpose                                        |
+| -------- | ---------------------- | ---------------------------------------------- |
+| GitHub   | `read:user user:email` | Verified developer identity + commit telemetry |
+| Google   | `openid email profile` | Verified email SSO                             |
 
 Session tokens are stored in the `sessions` table (AES-256-GCM encrypted at rest via `EncryptedPrismaAdapter`). Sessions expire after **30 days** with a rolling **24-hour refresh**.
 
@@ -77,18 +77,18 @@ Session tokens are stored in the `sessions` table (AES-256-GCM encrypted at rest
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 15 (App Router) |
-| Language | TypeScript 5 |
-| Styling | Tailwind CSS v4 |
-| Database | PostgreSQL 17 |
-| ORM | Prisma 7 (driver adapter: `@prisma/adapter-pg`) |
-| Auth | NextAuth v4 |
-| API | Apollo Server 4 + GraphQL |
-| Testing | Vitest 4 |
-| Monorepo | Turborepo 2 |
-| Runtime | Node.js 20 LTS |
+| Layer     | Technology                                      |
+| --------- | ----------------------------------------------- |
+| Framework | Next.js 15 (App Router)                         |
+| Language  | TypeScript 5                                    |
+| Styling   | Tailwind CSS v4                                 |
+| Database  | PostgreSQL 17                                   |
+| ORM       | Prisma 7 (driver adapter: `@prisma/adapter-pg`) |
+| Auth      | NextAuth v4                                     |
+| API       | Apollo Server 4 + GraphQL                       |
+| Testing   | Vitest 4                                        |
+| Monorepo  | Turborepo 2                                     |
+| Runtime   | Node.js 20 LTS                                  |
 
 ---
 
@@ -167,15 +167,15 @@ npm run prisma:seed --workspace=web
 
 This seeds the following problems into the `problem_bank` table:
 
-| Title | Difficulty | Topic |
-|-------|-----------|-------|
-| Two Sum | Easy | Arrays |
-| LRU Cache | Medium | Data Structures |
-| Coin Change | Medium | Dynamic Programming |
-| Course Schedule | Medium | Graphs |
-| Trapping Rain Water | Hard | Arrays |
-| Binary Tree Level Order Traversal | Medium | Trees |
-| Concurrent Rate Limiter | Hard | System Design |
+| Title                                 | Difficulty | Topic               |
+| ------------------------------------- | ---------- | ------------------- |
+| Pair Sum Index Locator                | Easy       | Arrays              |
+| Bounded LRU Cache Structure           | Medium     | Data Structures     |
+| Minimum Denomination Exchange         | Medium     | Dynamic Programming |
+| Topological Dependency Resolver       | Medium     | Graphs              |
+| Elevation Chamber Water Retention     | Hard       | Arrays              |
+| Level-by-Level Tree Hierarchy Scanner | Medium     | Trees               |
+| Concurrent Rate Limiter               | Hard       | System Design       |
 
 ### 5. Start the development server
 
@@ -228,19 +228,19 @@ docker compose up --build
 
 All scripts can be run from the repository root via Turborepo or scoped to the `web` workspace:
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start all apps in watch mode |
-| `npm run build` | Production build (all workspaces) |
-| `npm run lint` | ESLint across all workspaces |
-| `npm run test` | Run all Vitest tests |
-| `npm run test --workspace=web` | Run tests for the web app only |
-| `npm run test:watch --workspace=web` | Vitest watch mode |
-| `npm run prisma:generate --workspace=web` | Regenerate Prisma client |
-| `npm run prisma:migrate:dev --workspace=web` | Create + apply migration |
-| `npm run prisma:migrate:deploy --workspace=web` | Apply migrations (CI/production) |
-| `npm run prisma:studio --workspace=web` | Open Prisma Studio |
-| `npm run prisma:seed --workspace=web` | Seed ProblemBank data |
+| Command                                         | Description                       |
+| ----------------------------------------------- | --------------------------------- |
+| `npm run dev`                                   | Start all apps in watch mode      |
+| `npm run build`                                 | Production build (all workspaces) |
+| `npm run lint`                                  | ESLint across all workspaces      |
+| `npm run test`                                  | Run all Vitest tests              |
+| `npm run test --workspace=web`                  | Run tests for the web app only    |
+| `npm run test:watch --workspace=web`            | Vitest watch mode                 |
+| `npm run prisma:generate --workspace=web`       | Regenerate Prisma client          |
+| `npm run prisma:migrate:dev --workspace=web`    | Create + apply migration          |
+| `npm run prisma:migrate:deploy --workspace=web` | Apply migrations (CI/production)  |
+| `npm run prisma:studio --workspace=web`         | Open Prisma Studio                |
+| `npm run prisma:seed --workspace=web`           | Seed ProblemBank data             |
 
 ---
 
@@ -293,14 +293,14 @@ Route (app)                         Size
 
 Configured in [`apps/web/next.config.ts`](apps/web/next.config.ts) and applied to all routes:
 
-| Header | Value |
-|--------|-------|
-| `Content-Security-Policy` | Strict in production; `unsafe-eval` allowed in dev |
-| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` |
-| `X-Content-Type-Options` | `nosniff` |
-| `X-Frame-Options` | `DENY` |
-| `Permissions-Policy` | `camera=(), microphone=(self), geolocation=()` |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| Header                      | Value                                              |
+| --------------------------- | -------------------------------------------------- |
+| `Content-Security-Policy`   | Strict in production; `unsafe-eval` allowed in dev |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload`     |
+| `X-Content-Type-Options`    | `nosniff`                                          |
+| `X-Frame-Options`           | `DENY`                                             |
+| `Permissions-Policy`        | `camera=(), microphone=(self), geolocation=()`     |
+| `Referrer-Policy`           | `strict-origin-when-cross-origin`                  |
 
 > **`microphone=(self)`** is intentionally enabled to support the Web Audio / `getUserMedia` API used by the AI Mock Interview Simulator.
 
@@ -309,6 +309,7 @@ Configured in [`apps/web/next.config.ts`](apps/web/next.config.ts) and applied t
 ## Development Roadmap
 
 ### Stage 1 — Core Platform ✅
+
 - [x] Turborepo monorepo scaffold
 - [x] Next.js 15 App Router with TypeScript
 - [x] PostgreSQL + Prisma schema
@@ -318,17 +319,20 @@ Configured in [`apps/web/next.config.ts`](apps/web/next.config.ts) and applied t
 - [x] Onboarding wizard
 
 ### Stage 2 — Telemetry Integrations 🚧
+
 - [ ] GitHub API ingestion (commits, languages, repo stats)
 - [ ] LeetCode GraphQL scraper + submission sync
 - [ ] Resume PDF parser (extract + score)
 
 ### Stage 3 — AI Mock Interviews 🔜
+
 - [ ] WebRTC voice capture pipeline
 - [ ] Whisper STT transcription
 - [ ] GPT-4o interviewer agent with rubric scoring
 - [ ] Hiring Readiness Score computation engine
 
 ### Stage 4 — Public Profiles & Growth 🔜
+
 - [ ] `/u/:username` public developer profiles
 - [ ] Shareable hiring readiness cards (OG image via `@vercel/og`)
 - [ ] Weekly digest email (SendGrid)

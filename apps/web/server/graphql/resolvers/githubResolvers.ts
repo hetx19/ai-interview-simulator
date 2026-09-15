@@ -38,7 +38,7 @@ export const githubResolvers = {
   Mutation: {
     syncGitHub: async (
       _parent: unknown,
-      args: { force?: boolean } = {},
+      _args: unknown,
       ctx: GraphQLContext,
     ) => {
       requireAuth(ctx);
@@ -79,9 +79,7 @@ export const githubResolvers = {
       }
 
       const githubService = new GithubService(ctx.user.id);
-      if (!args?.force) {
-        await githubService.assertSyncAllowed();
-      }
+      await githubService.assertSyncAllowed();
 
       const result = await enqueueJob(JobType.GITHUB_SYNC, {
         userId: ctx.user.id,

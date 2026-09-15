@@ -30,6 +30,24 @@ export const typeDefs = /* GraphQL */ `
     lastSyncedAt: DateTime
   }
 
+  type LeetCodeProfile {
+    id: ID!
+    leetcodeUsername: String!
+    leetcodeScore: Int
+    totalSolved: Int!
+    easySolved: Int!
+    mediumSolved: Int!
+    hardSolved: Int!
+    contestRating: Int
+    contestRanking: Int
+    streakDays: Int!
+    topicPerformance: JSON
+    weakTopics: [String!]!
+    recommendations: JSON
+    contestHistory: JSON
+    lastSyncedAt: DateTime
+  }
+
   type SyncJobResponse {
     jobId: String!
     status: String!
@@ -43,12 +61,25 @@ export const typeDefs = /* GraphQL */ `
     correlationId: String!
   }
 
+  input ManualLeetcodeProfileInput {
+    leetcodeUsername: String!
+    easySolved: Int!
+    mediumSolved: Int!
+    hardSolved: Int!
+    contestRating: Int
+    streakDays: Int
+  }
+
   type Query {
     me: User
     githubProfile: GitHubProfile
+    leetcodeProfile: LeetCodeProfile
   }
 
   type Mutation {
-    syncGitHub(force: Boolean): SyncJobResponse!
+    syncGitHub: SyncJobResponse!
+    syncLeetcode(username: String): SyncJobResponse!
+    syncLeetCode(username: String): SyncJobResponse!
+    saveManualLeetcodeProfile(input: ManualLeetcodeProfileInput!): LeetCodeProfile!
   }
 `;

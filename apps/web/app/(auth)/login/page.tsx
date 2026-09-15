@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { DevMetricLogo } from "@/components/ui/DevMetricLogo";
 
@@ -32,7 +32,6 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 function LoginContent() {
-  const router = useRouter();
   const params = useSearchParams();
   const errorParam = params.get("error");
   const callbackUrl = params.get("callbackUrl") ?? "/dashboard";
@@ -43,22 +42,52 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberSession, setRememberSession] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const errorMessage = errorParam
+  const errorMessage = formError
+    ? formError
+    : errorParam
     ? (ERROR_MESSAGES[errorParam] ?? ERROR_MESSAGES.Default)
     : null;
 
-  const handleOAuthSignIn = (provider: "github" | "google") => {
+  const handleOAuthSignIn = async (provider: "github" | "google") => {
+    setFormError(null);
     setLoadingProvider(provider);
-    signIn(provider, { callbackUrl });
+    try {
+      await signIn(provider, { callbackUrl });
+    } catch {
+      setLoadingProvider(null);
+      setFormError("Failed to initiate OAuth sign in. Please try again.");
+    }
   };
 
-  const handleCredentialsSubmit = (e: React.FormEvent) => {
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      router.push(callbackUrl);
-    }, 600);
+    setFormError(null);
+
+    try {
+      const res = await fetch("/api/auth/dev-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || data.error || "Authentication failed.");
+      }
+
+      // Hard navigation ensures session cookies are recognized by middleware & server layout
+      window.location.href = callbackUrl;
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setFormError(err.message || "An error occurred during authentication.");
+    }
   };
 
   return (
@@ -252,7 +281,6 @@ function LoginContent() {
                     <input
                       id="dev-password"
                       type={showPassword ? "text" : "password"}
-                      required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••••••"

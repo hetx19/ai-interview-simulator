@@ -21,7 +21,7 @@ export const authOptions: AuthOptions = {
       authorization: {
         params: {
           // only need public repo and email data
-          scope: "read:user user:email public_repo",
+          scope: "read:user user:email",
         },
       },
     }),
